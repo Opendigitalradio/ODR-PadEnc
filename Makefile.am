@@ -10,8 +10,8 @@ endif
 odr_padenc_CXXFLAGS = $(GITVERSION_FLAGS) @MAGICKWAND_CFLAGS@ -Icontrib -Wall -Wextra
 odr_padenc_LDADD    = @MAGICKWAND_LDADD@
 odr_padenc_SOURCES  = src/mot-encoder.cpp \
-					  contrib/lib_crc.h \
-					  contrib/lib_crc.c
+					  src/crc.h \
+					  src/crc.c
 
 bin_PROGRAMS = odr-padenc$(EXEEXT)
 
