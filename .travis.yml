@@ -18,12 +18,12 @@ compiler:
 
 script:
   - |
-    ./bootstrap.sh
+    ./bootstrap
     CC=gcc-5 CXX=g++-5 ./configure
     make
   - |
     sudo apt-get install libmagickwand-dev
-    ./bootstrap.sh
+    ./bootstrap
     CC=gcc-5 CXX=g++-5 ./configure
     make
 
