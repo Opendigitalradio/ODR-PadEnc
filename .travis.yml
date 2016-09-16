@@ -1,0 +1,29 @@
+language: c++
+sudo: required
+dist: trusty
+
+addons: &addons
+  apt:
+    sources: &sources
+      - ubuntu-toolchain-r-test
+    packages: &packages
+      - automake
+      - libboost1.55-all-dev
+      - libcurl4-openssl-dev
+      - gcc-5
+      - g++-5
+
+compiler:
+  - gcc
+
+script:
+  - |
+    ./bootstrap.sh
+    CC=gcc-5 CXX=g++-5 ./configure
+    make
+  - |
+    sudo apt-get install libmagickwand-dev
+    ./bootstrap.sh
+    CC=gcc-5 CXX=g++-5 ./configure
+    make
+
