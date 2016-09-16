@@ -1,0 +1,63 @@
+2016-09-02: Matthias P. Braendli <matthias@mpb.li>
+	(v1.2.0):
+	* mot-encoder:
+		Try compressing slides to PNG if size is smaller than JPG.
+		Fix memory leak in JPG compressor.
+2016-07-30: Matthias P. Braendli <matthias@mpb.li>
+	(v1.1.0):
+	* mot-encoder:
+		Add DL+ support
+	* developer documentation:
+		Add a Doxygen target for the whole project.
+2016-01-03: Matthias P. Braendli <matthias@mpb.li>
+	(v0.7.4):
+	* mot-encoder:
+		Do not add black border around images anymore.
+		Ensure JPEGs are not using progressive encoding and
+		strip useless metadata.
+2015-10-01: Matthias P. Braendli <matthias@mpb.li>
+	(v0.7.3):
+	* mot-encoder:
+		Refactor datagroup encoding to improve encoding
+		efficiency.
+		Update EBU Latin charset.
+		Add remove-dls option.
+2015-05-04: Matthias P. Braendli <matthias@mpb.li>
+	(v0.7.1):
+	* mot-encoder:
+		Add support for character set conversion from
+		UTF-8 to EBU Complete Latin Based Repertoire.
+		Fix issue with short X-PAD lengths.
+2015-04-10: Matthias P. Braendli <matthias@mpb.li>
+	(v0.7.0):
+	* mot-encoder:
+		Merge fixes for mot-encoder issues.
+2014-12-09: Matthias P. Braendli <matthias@mpb.li>
+	(v0.6.0):
+	* mot-encoder:
+		Add support for PNG slides
+2014-09-26: Matthias P. Braendli <matthias@mpb.li>
+	(v0.5.1):
+	* mot-encoder:
+		Improve slide selection and transmission handling.
+		Add ability to send slides without doing pre-processing.
+2014-07-08: Matthias P. Braendli <matthias@mpb.li>
+	(v0.5.0):
+	* mot-encoder:
+		Can do only DLS, only slideshow or both
+		Can erase slides once transmitted
+		Fixed the memory allocation issues.
+		Removed obsolete dls-encoder
+
+		Known bugs:
+		PAD lengths 23 and 26 don't work.
+		Some older receivers don't like the encoded bitstream
+2014-04-25: Matthias P. Braendli <matthias@mpb.li>
+	(v0.4.0):
+	* mot-encoder:
+		Acceleration of MOT Slideshow transfer.
+2014-03-29: Matthias P. Braendli <matthias@mpb.li>
+	(v0.3.0):
+		MOT Slideshow and DLS support
+	* mot-encoder:
+		Correct X-PAD encoding
