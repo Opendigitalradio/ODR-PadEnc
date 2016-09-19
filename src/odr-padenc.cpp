@@ -19,7 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*!
-    \file mot-encoder.cpp
+    \file odr-padenc.cpp
     \brief Generete PAD data for MOT Slideshow and DLS
 
     \author Sergio Sagliocco <sergio.sagliocco@csp.it>
@@ -573,7 +573,7 @@ void PADPacketizer::WriteAllPADs(int output_fd) {
         }
 
         if (write(output_fd, &(*pad)[0], pad->size()) != (signed) pad->size())
-            fprintf(stderr, "mot-encoder Error: Could not write PAD\n");
+            fprintf(stderr, "ODR-PadEnc Error: Could not write PAD\n");
 
         delete pad;
     }
@@ -739,7 +739,7 @@ static PADPacketizer *pad_packetizer;
 
 void usage(char* name)
 {
-    fprintf(stderr, "DAB MOT encoder %s for slideshow and DLS\n\n"
+    fprintf(stderr, "DAB PAD encoder %s for MOT Slideshow and DLS\n\n"
                     "By CSP Innovazione nelle ICT s.c.a r.l. (http://rd.csp.it/) and\n"
                     "Opendigitalradio.org\n\n"
                     "Reads image data from the specified directory, DLS text from a file,\n"
@@ -859,26 +859,26 @@ int main(int argc, char *argv[])
     }
 
     if (padlen != SHORT_PAD && (padlen < VARSIZE_PAD_MIN || padlen > VARSIZE_PAD_MAX)) {
-        fprintf(stderr, "mot-encoder Error: pad length %d invalid: Possible values: "
+        fprintf(stderr, "ODR-PadEnc Error: pad length %d invalid: Possible values: "
                 ALLOWED_PADLEN "\n",
                 padlen);
         return 2;
     }
 
     if (sls_dir && not dls_file.empty()) {
-        fprintf(stderr, "mot-encoder encoding Slideshow from '%s' and DLS from '%s' to '%s'\n",
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from '%s' to '%s'\n",
                 sls_dir, dls_file.c_str(), output);
     }
     else if (sls_dir) {
-        fprintf(stderr, "mot-encoder encoding Slideshow from '%s' to '%s'. No DLS.\n",
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' to '%s'. No DLS.\n",
                 sls_dir, output);
     }
     else if (not dls_file.empty()) {
-        fprintf(stderr, "mot-encoder encoding DLS from '%s' to '%s'. No Slideshow.\n",
+        fprintf(stderr, "ODR-PadEnc encoding DLS from '%s' to '%s'. No Slideshow.\n",
                 dls_file.c_str(), output);
     }
     else {
-        fprintf(stderr, "mot-encoder Error: No DLS nor slideshow to encode !\n");
+        fprintf(stderr, "ODR-PadEnc Error: No DLS nor slideshow to encode !\n");
         usage(argv[0]);
         return 1;
     }
@@ -910,12 +910,12 @@ int main(int argc, char *argv[])
     }
 
     if (charset == -1) {
-        fprintf(stderr, "mot-encoder Error: Invalid charset!\n");
+        fprintf(stderr, "ODR-PadEnc Error: Invalid charset!\n");
         usage(argv[0]);
         return 1;
     }
     else {
-        fprintf(stderr, "mot-encoder using charset %s (%d)\n",
+        fprintf(stderr, "ODR-PadEnc using charset %s (%d)\n",
                user_charset, charset);
     }
 
@@ -925,17 +925,17 @@ int main(int argc, char *argv[])
             // no conversion needed
             break;
         case CHARSET_UTF8:
-            fprintf(stderr, "mot-encoder converting DLS texts to Complete EBU Latin\n");
+            fprintf(stderr, "ODR-PadEnc converting DLS texts to Complete EBU Latin\n");
             break;
         default:
-            fprintf(stderr, "mot-encoder Error: DLS conversion to EBU is currently only supported for UTF-8 input!\n");
+            fprintf(stderr, "ODR-PadEnc Error: DLS conversion to EBU is currently only supported for UTF-8 input!\n");
             return 1;
         }
     }
 
     int output_fd = open(output, O_WRONLY);
     if (output_fd == -1) {
-        perror("mot-encoder Error: failed to open output");
+        perror("ODR-PadEnc Error: failed to open output");
         return 3;
     }
 
@@ -952,7 +952,7 @@ int main(int argc, char *argv[])
         if (sls_dir) { // slide + possibly DLS
             DIR *pDir = opendir(sls_dir);
             if (pDir == NULL) {
-                fprintf(stderr, "mot-encoder Error: cannot open directory '%s'\n", sls_dir);
+                fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", sls_dir);
                 return 1;
             }
 
@@ -968,7 +968,7 @@ int main(int argc, char *argv[])
                     slides_to_transmit.push_back(md);
 
                     if (verbose) {
-                        fprintf(stderr, "mot-encoder found slide '%s', fidx %d\n", imagepath, md.fidx);
+                        fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath, md.fidx);
                     }
                 }
             }
@@ -996,11 +996,11 @@ int main(int argc, char *argv[])
 
                     ret = encodeFile(output_fd, it->filepath, it->fidx, raw_slides);
                     if (ret != 1)
-                        fprintf(stderr, "mot-encoder Error: cannot encode file '%s'\n", it->filepath.c_str());
+                        fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", it->filepath.c_str());
 
                     if (erase_after_tx) {
                         if (unlink(it->filepath.c_str()) == -1) {
-                            fprintf(stderr, "mot-encoder Error: erasing file '%s' failed: ", it->filepath.c_str());
+                            fprintf(stderr, "ODR-PadEnc Error: erasing file '%s' failed: ", it->filepath.c_str());
                             perror("");
                         }
                     }
@@ -1045,7 +1045,7 @@ DATA_GROUP* createDataGroupLengthIndicator(size_t len) {
 
 void warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {
     if (height < 240 || width < 320)
-        fprintf(stderr, "mot-encoder Warning: Image '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)\n", fname.c_str(), width, height);
+        fprintf(stderr, "ODR-PadEnc Warning: Image '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)\n", fname.c_str(), width, height);
 }
 
 
@@ -1103,7 +1103,7 @@ size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& 
 
     // check for max size
     if (blobsize_png > MAXSLIDESIZE && blobsize_jpg > MAXSLIDESIZE) {
-        fprintf(stderr, "mot-encoder: Image Size too large after compression: %zu bytes (PNG), %zu bytes (JPEG)\n",
+        fprintf(stderr, "ODR-PadEnc: Image Size too large after compression: %zu bytes (PNG), %zu bytes (JPEG)\n",
                 blobsize_png, blobsize_jpg);
         free(blob_png);
         free(blob_jpg);
@@ -1115,10 +1115,10 @@ size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& 
 
     if (verbose) {
         if (*jfif_not_png)
-            fprintf(stderr, "mot-encoder resized image to %zu x %zu. Size after compression %zu bytes (JPEG, q=%d; PNG was %zu bytes)\n",
+            fprintf(stderr, "ODR-PadEnc resized image to %zu x %zu. Size after compression %zu bytes (JPEG, q=%d; PNG was %zu bytes)\n",
                     width, height, blobsize_jpg, quality_jpg, blobsize_png);
         else
-            fprintf(stderr, "mot-encoder resized image to %zu x %zu. Size after compression %zu bytes (PNG; JPEG was %zu bytes)\n",
+            fprintf(stderr, "ODR-PadEnc resized image to %zu x %zu. Size after compression %zu bytes (PNG; JPEG was %zu bytes)\n",
                     width, height, blobsize_png, blobsize_jpg);
     }
 
@@ -1179,7 +1179,7 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
 
         err = MagickReadImage(m_wand, fname.c_str());
         if (err == MagickFalse) {
-            fprintf(stderr, "mot-encoder Error: Unable to load image '%s'\n",
+            fprintf(stderr, "ODR-PadEnc Error: Unable to load image '%s'\n",
                     fname.c_str());
 
             goto encodefile_out;
@@ -1202,7 +1202,7 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
                 orig_is_jpeg = true;
 
                 if (verbose) {
-                    fprintf(stderr, "mot-encoder image: '%s' (id=%d)."
+                    fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d)."
                             " Original size: %zu x %zu. (%s, q=%zu, progr=%s)\n",
                             fname.c_str(), fidx, width, height, orig_format, orig_quality, jpeg_progr ? "y" : "n");
                 }
@@ -1212,13 +1212,13 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
                 jfif_not_png = false;
 
                 if (verbose) {
-                    fprintf(stderr, "mot-encoder image: '%s' (id=%d)."
+                    fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d)."
                             " Original size: %zu x %zu. (%s)\n",
                             fname.c_str(), fidx, width, height, orig_format);
                 }
             }
             else if (verbose) {
-                fprintf(stderr, "mot-encoder image: '%s' (id=%d)."
+                fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d)."
                         " Original size: %zu x %zu. (%s)\n",
                         fname.c_str(), fidx, width, height, orig_format);
             }
@@ -1226,10 +1226,10 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
             free(orig_format);
         }
         else {
-            fprintf(stderr, "mot-encoder Warning: Unable to detect image format of '%s'\n",
+            fprintf(stderr, "ODR-PadEnc Warning: Unable to detect image format of '%s'\n",
                     fname.c_str());
 
-            fprintf(stderr, "mot-encoder image: '%s' (id=%d).  Original size: %zu x %zu.\n",
+            fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d).  Original size: %zu x %zu.\n",
                     fname.c_str(), fidx, width, height);
         }
 
@@ -1239,7 +1239,7 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
 
             if (blobsize <= MAXSLIDESIZE) {
                 if (verbose) {
-                    fprintf(stderr, "mot-encoder image: '%s' (id=%d).  No resize needed: %zu Bytes\n",
+                    fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d).  No resize needed: %zu Bytes\n",
                             fname.c_str(), fidx, blobsize);
                 }
                 resize_required = false;
@@ -1255,7 +1255,7 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
         }
 
 #else
-        fprintf(stderr, "mot-encoder has not been compiled with MagickWand, only RAW slides are supported!\n");
+        fprintf(stderr, "ODR-PadEnc has not been compiled with MagickWand, only RAW slides are supported!\n");
         ret = -1;
         goto encodefile_out;
 #endif
@@ -1264,7 +1264,7 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
         // read file
         FILE* pFile = fopen(fname.c_str(), "rb");
         if (pFile == NULL) {
-            fprintf(stderr, "mot-encoder Error: Unable to load file '%s'\n",
+            fprintf(stderr, "ODR-PadEnc Error: Unable to load file '%s'\n",
                     fname.c_str());
             goto encodefile_out;
         }
@@ -1275,20 +1275,20 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
         rewind(pFile);
 
         if (blobsize > MAXSLIDESIZE) {
-            fprintf(stderr, "mot-encoder Warning: blob in raw-slide '%s' too large\n",
+            fprintf(stderr, "ODR-PadEnc Warning: blob in raw-slide '%s' too large\n",
                     fname.c_str());
         }
 
         // allocate memory to contain the whole file:
         blob = (unsigned char*)malloc(sizeof(char) * blobsize);
         if (blob == NULL) {
-            fprintf(stderr, "mot-encoder Error: Memory allocation error\n");
+            fprintf(stderr, "ODR-PadEnc Error: Memory allocation error\n");
             goto encodefile_out;
         }
 
         // copy the file into the buffer:
         if (fread(blob, blobsize, 1, pFile) != 1) {
-            fprintf(stderr, "mot-encoder Error: Could not read file\n");
+            fprintf(stderr, "ODR-PadEnc Error: Could not read file\n");
             goto encodefile_out;
         }
 
@@ -1375,7 +1375,7 @@ uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png)
     cntemp[0] = 0x0 << 4;   // charset: 0 (Complete EBU Latin based) - doesn't really matter here
     snprintf((char*) (cntemp + 1), sizeof(cntemp) - 1, "%04d.%s", fidx, jfif_not_png ? "jpg" : "png");
     if (verbose)
-        fprintf(stderr, "mot-encoder writing image as '%s'\n", cntemp + 1);
+        fprintf(stderr, "ODR-PadEnc writing image as '%s'\n", cntemp + 1);
 
     // MOT header - content type: image, content subtype: JFIF / PNG
     MOTHeader header(blobsize, 0x02, jfif_not_png ? 0x001 : 0x003);
@@ -1525,7 +1525,7 @@ bool parse_dl_param_bool(const std::string &key, const std::string &value, bool 
         target = 1;
         return true;
     }
-    fprintf(stderr, "mot-encoder Warning: DL parameter '%s' has unsupported value '%s' - ignored\n", key.c_str(), value.c_str());
+    fprintf(stderr, "ODR-PadEnc Warning: DL parameter '%s' has unsupported value '%s' - ignored\n", key.c_str(), value.c_str());
     return false;
 }
 
@@ -1535,7 +1535,7 @@ bool parse_dl_param_int_dl_plus_tag(const std::string &key, const std::string &v
         target = value_int;
         return true;
     }
-    fprintf(stderr, "mot-encoder Warning: DL Plus tag parameter '%s' %d out of range - ignored\n", key.c_str(), value_int);
+    fprintf(stderr, "ODR-PadEnc Warning: DL Plus tag parameter '%s' %d out of range - ignored\n", key.c_str(), value_int);
     return false;
 }
 
@@ -1553,7 +1553,7 @@ void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
         // parse key/value pair
         size_t separator_pos = line.find('=');
         if (separator_pos == std::string::npos) {
-            fprintf(stderr, "mot-encoder Warning: DL parameter line '%s' without separator - ignored\n", line.c_str());
+            fprintf(stderr, "ODR-PadEnc Warning: DL parameter line '%s' without separator - ignored\n", line.c_str());
             continue;
         }
         std::string key = line.substr(0, separator_pos);
@@ -1576,14 +1576,14 @@ void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
         }
         if (key == "DL_PLUS_TAG") {
             if (dl_state.dl_plus_tags.size() == 4) {
-                fprintf(stderr, "mot-encoder Warning: DL Plus tag ignored, as already four tags present\n");
+                fprintf(stderr, "ODR-PadEnc Warning: DL Plus tag ignored, as already four tags present\n");
                 continue;
             }
 
             // split value
             std::vector<std::string> params = split_string(value, ' ');
             if (params.size() != 3) {
-                fprintf(stderr, "mot-encoder Warning: DL Plus tag value '%s' does not have three parts - ignored\n", value.c_str());
+                fprintf(stderr, "ODR-PadEnc Warning: DL Plus tag value '%s' does not have three parts - ignored\n", value.c_str());
                 continue;
             }
 
@@ -1595,10 +1595,10 @@ void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
             continue;
         }
 
-        fprintf(stderr, "mot-encoder Warning: DL parameter '%s' unknown - ignored\n", key.c_str());
+        fprintf(stderr, "ODR-PadEnc Warning: DL parameter '%s' unknown - ignored\n", key.c_str());
     }
 
-    fprintf(stderr, "mot-encoder Warning: no param closing tag, so the DLS text will be empty\n");
+    fprintf(stderr, "ODR-PadEnc Warning: no param closing tag, so the DLS text will be empty\n");
 }
 
 
@@ -1666,10 +1666,10 @@ void writeDLS(int output_fd, const std::string& dls_file, uint8_t charset, bool 
     // toggle the toggle bit only on new DL state
     bool dl_state_is_new = dl_state != dl_state_prev;
     if (verbose) {
-        fprintf(stderr, "mot-encoder writing %s DLS text \"%s\"\n", dl_state_is_new ? "new" : "old", dl_state.dl_text.c_str());
+        fprintf(stderr, "ODR-PadEnc writing %s DLS text \"%s\"\n", dl_state_is_new ? "new" : "old", dl_state.dl_text.c_str());
         if (dl_state.dl_plus_enabled) {
             fprintf(
-                    stderr, "mot-encoder writing %s DL Plus tags (IT/IR: %d/%d): ",
+                    stderr, "ODR-PadEnc writing %s DL Plus tags (IT/IR: %d/%d): ",
                     dl_state_is_new ? "new" : "old",
                     dl_state.dl_plus_item_toggle ? 1 : 0,
                     dl_state.dl_plus_item_running ? 1 : 0);
