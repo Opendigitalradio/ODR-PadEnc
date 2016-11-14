@@ -57,9 +57,7 @@
 
 #define SLEEPDELAY_DEFAULT 10 //seconds
 
-extern "C" {
 #include "crc.h"
-}
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -254,7 +252,7 @@ struct DATA_GROUP {
 
     void AppendCRC() {
         uint16_t crc = 0xFFFF;
-        crc = crc16(crc, &data[0], data.size());
+        crc = odr::crc16(crc, &data[0], data.size());
         crc = ~crc;
 #if DEBUG
         fprintf(stderr, "crc=%04x ~crc=%04x\n", crc, ~crc);

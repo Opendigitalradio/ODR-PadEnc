@@ -24,18 +24,17 @@
 
 #include <stdint.h>
 
+namespace odr{
 
-// The init functions can be used to create a new table with a different polynome
-void init_crc8tab(uint8_t l_code, uint8_t l_init);
-extern uint8_t crc8tab[];
+	// The init functions can be used to create a new table with a different polynome
+	void init_crc8tab(uint8_t l_code, uint8_t l_init);
+	
+	uint8_t crc8(uint8_t l_crc, const void *lp_data, unsigned l_nb);
 
-uint8_t crc8(uint8_t l_crc, const void *lp_data, unsigned l_nb);
-
-void init_crc16tab(uint16_t l_code, uint16_t l_init);
-uint16_t crc16(uint16_t l_crc, const void *lp_data, unsigned l_nb);
-extern uint16_t crc16tab[];
-
-void init_crc32tab(uint32_t l_code, uint32_t l_init);
-uint32_t crc32(uint32_t l_crc, const void *lp_data, unsigned l_nb);
-extern uint32_t crc32tab[];
-
+	void init_crc16tab(uint16_t l_code, uint16_t l_init);
+	uint16_t crc16(uint16_t l_crc, const void *lp_data, unsigned l_nb);
+	
+	void init_crc32tab(uint32_t l_code, uint32_t l_init);
+	uint32_t crc32(uint32_t l_crc, const void *lp_data, unsigned l_nb);
+	
+}
