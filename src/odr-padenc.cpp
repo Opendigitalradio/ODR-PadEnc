@@ -1272,6 +1272,11 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
         blobsize = ftell(pFile);
         rewind(pFile);
 
+        if (verbose) {
+            fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d). Raw file: %zu Bytes\n",
+                    fname.c_str(), fidx, blobsize);
+        }
+
         if (blobsize > MAXSLIDESIZE) {
             fprintf(stderr, "ODR-PadEnc Warning: blob in raw-slide '%s' too large\n",
                     fname.c_str());
