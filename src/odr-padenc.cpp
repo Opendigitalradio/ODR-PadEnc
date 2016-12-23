@@ -221,7 +221,8 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
 uint8_vector_t createMotHeader(
         size_t blobsize,
         int fidx,
-        bool jfif_not_png);
+        bool jfif_not_png,
+        const std::string &params_fname);
 
 void createMscDG(MSCDG* msc, unsigned short int dgtype, int *cindex, unsigned short int segnum,
         unsigned short int lastseg, unsigned short int tid, unsigned char* data,
@@ -296,6 +297,8 @@ struct DATA_GROUP {
 // MOT Slideshow related
 static int cindex_header = 0;
 static int cindex_body = 0;
+
+const std::string SLS_PARAMS_SUFFIX = ".sls_params";
 
 
 class MOTHeader {
@@ -730,6 +733,20 @@ pad_t* PADPacketizer::FlushPAD() {
 static PADPacketizer *pad_packetizer;
 
 
+std::vector<std::string> split_string(const std::string &s, const char delimiter) {
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string part;
+
+    while (std::getline(ss, part, delimiter))
+        result.push_back(part);
+    return result;
+}
+
+
+
+
+
 
 
 
@@ -956,18 +973,28 @@ int main(int argc, char *argv[])
 
             // Add new slides to transmit to list
             while ((pDirent = readdir(pDir)) != NULL) {
-                if (pDirent->d_name[0] != '.') {
-                    char imagepath[256];
-                    sprintf(imagepath, "%s/%s", sls_dir, pDirent->d_name);
+                std::string slide = pDirent->d_name;
 
-                    slide_metadata_t md;
-                    md.filepath = imagepath;
-                    md.fidx     = slides_history.get_fidx(imagepath);
-                    slides_to_transmit.push_back(md);
+                // skip dirs beginning with '.'
+                if(slide[0] == '.')
+                    continue;
 
-                    if (verbose) {
-                        fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath, md.fidx);
-                    }
+                // skip slide params files
+                if(slide.length() >= SLS_PARAMS_SUFFIX.length() &&
+                        slide.compare(slide.length() - SLS_PARAMS_SUFFIX.length(), SLS_PARAMS_SUFFIX.length(), SLS_PARAMS_SUFFIX) == 0)
+                    continue;
+
+                // add slide
+                char imagepath[256];
+                sprintf(imagepath, "%s/%s", sls_dir, slide.c_str());
+
+                slide_metadata_t md;
+                md.filepath = imagepath;
+                md.fidx     = slides_history.get_fidx(imagepath);
+                slides_to_transmit.push_back(md);
+
+                if (verbose) {
+                    fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath, md.fidx);
                 }
             }
 
@@ -1323,7 +1350,7 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
             nseg++;
         }
 
-        uint8_vector_t mothdr = createMotHeader(blobsize, fidx, jfif_not_png);
+        uint8_vector_t mothdr = createMotHeader(blobsize, fidx, jfif_not_png, fname + SLS_PARAMS_SUFFIX);
         // Create the MSC Data Group C-Structure
         createMscDG(&msc, 3, &cindex_header, 0, 1, fidx, &mothdr[0], mothdr.size());
         // Generate the MSC DG frame (Figure 9 en 300 401)
@@ -1371,14 +1398,104 @@ encodefile_out:
 }
 
 
-uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png)
+bool parse_sls_param_id(const std::string &key, const std::string &value, uint8_t &target) {
+    int value_int = atoi(value.c_str());
+    if (value_int >= 0x00 && value_int <= 0xFF) {
+        target = value_int;
+        return true;
+    }
+    fprintf(stderr, "ODR-PadEnc Warning: SLS parameter '%s' %d out of range - ignored\n", key.c_str(), value_int);
+    return false;
+}
+
+
+bool check_sls_param_len(const std::string &key, size_t len, size_t len_max) {
+    if (len <= len_max)
+        return true;
+    fprintf(stderr, "ODR-PadEnc Warning: SLS parameter '%s' exceeds its maximum length (%zu > %zu) - ignored\n", key.c_str(), len, len_max);
+    return false;
+}
+
+
+void process_mot_params_file(MOTHeader& header, const std::string &params_fname) {
+    std::ifstream params_fstream(params_fname);
+    if (!params_fstream.is_open())
+        return;
+
+    std::string line;
+    while (std::getline(params_fstream, line)) {
+        // ignore empty lines and comments
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        // parse key/value pair
+        size_t separator_pos = line.find('=');
+        if (separator_pos == std::string::npos) {
+            fprintf(stderr, "ODR-PadEnc Warning: SLS parameter line '%s' without separator - ignored\n", line.c_str());
+            continue;
+        }
+        std::string key = line.substr(0, separator_pos);
+        std::string value = line.substr(separator_pos + 1);
+#if DEBUG
+        fprintf(stderr, "process_mot_params_file: key: '%s', value: '%s'\n", key.c_str(), value.c_str());
+#endif
+
+        if (key == "CategoryID/SlideID") {
+            // split value
+            std::vector<std::string> params = split_string(value, ' ');
+            if (params.size() != 2) {
+                fprintf(stderr, "ODR-PadEnc Warning: SLS parameter CategoryID/SlideID value '%s' does not have two parts - ignored\n", value.c_str());
+                continue;
+            }
+
+            uint8_t id_param[2];
+            if (parse_sls_param_id("CategoryID", params[0], id_param[0]) &
+                parse_sls_param_id("SlideID", params[1], id_param[1])) {
+                header.AddExtensionVarSize(0x25, id_param, sizeof(id_param));
+                if (verbose)
+                    fprintf(stderr, "ODR-PadEnc SLS parameter: CategoryID = %d / SlideID = %d\n", id_param[0], id_param[1]);
+            }
+            continue;
+        }
+        if (key == "CategoryTitle") {
+            if(!check_sls_param_len("CategoryTitle", value.length(), 128))
+                continue;
+
+        	header.AddExtensionVarSize(0x26, (uint8_t*) value.c_str(), value.length());
+            if (verbose)
+                fprintf(stderr, "ODR-PadEnc SLS parameter: CategoryTitle = '%s'\n", value.c_str());
+            continue;
+        }
+        if (key == "ClickThroughURL") {
+            if(!check_sls_param_len("ClickThroughURL", value.length(), 512))
+                continue;
+
+            header.AddExtensionVarSize(0x27, (uint8_t*) value.c_str(), value.length());
+            if (verbose)
+                fprintf(stderr, "ODR-PadEnc SLS parameter: ClickThroughURL = '%s'\n", value.c_str());
+            continue;
+        }
+        if (key == "AlternativeLocationURL") {
+            if(!check_sls_param_len("AlternativeLocationURL", value.length(), 512))
+                continue;
+
+            header.AddExtensionVarSize(0x28, (uint8_t*) value.c_str(), value.length());
+            if (verbose)
+                fprintf(stderr, "ODR-PadEnc SLS parameter: AlternativeLocationURL = '%s'\n", value.c_str());
+            continue;
+        }
+
+        fprintf(stderr, "ODR-PadEnc Warning: SLS parameter '%s' unknown - ignored\n", key.c_str());
+    }
+}
+
+
+uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, const std::string &params_fname)
 {
     // prepare ContentName
     uint8_t cntemp[10];     // = 1 + 8 + 1 = charset + name + terminator
     cntemp[0] = 0x0 << 4;   // charset: 0 (Complete EBU Latin based) - doesn't really matter here
     snprintf((char*) (cntemp + 1), sizeof(cntemp) - 1, "%04d.%s", fidx, jfif_not_png ? "jpg" : "png");
-    if (verbose)
-        fprintf(stderr, "ODR-PadEnc writing image as '%s'\n", cntemp + 1);
 
     // MOT header - content type: image, content subtype: JFIF / PNG
     MOTHeader header(blobsize, 0x02, jfif_not_png ? 0x001 : 0x003);
@@ -1388,6 +1505,12 @@ uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png)
 
     // ContentName: XXXX.jpg / XXXX.png
     header.AddExtensionVarSize(0x0C, cntemp, sizeof(cntemp) - 1);   // omit terminator
+
+    // process params file if present
+    process_mot_params_file(header, params_fname);
+
+    if (verbose)
+        fprintf(stderr, "ODR-PadEnc writing image as '%s'\n", cntemp + 1);
 
     return header.GetData();
 }
@@ -1508,16 +1631,6 @@ DATA_GROUP* createDynamicLabelPlus(const DL_STATE& dl_state) {
     return dg;
 }
 
-
-std::vector<std::string> split_string(const std::string &s, const char delimiter) {
-    std::vector<std::string> result;
-    std::stringstream ss(s);
-    std::string part;
-
-    while (std::getline(ss, part, delimiter))
-        result.push_back(part);
-    return result;
-}
 
 bool parse_dl_param_bool(const std::string &key, const std::string &value, bool &target) {
     if (value == "0") {
