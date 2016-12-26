@@ -1461,7 +1461,7 @@ void process_mot_params_file(MOTHeader& header, const std::string &params_fname)
             if(!check_sls_param_len("CategoryTitle", value.length(), 128))
                 continue;
 
-        	header.AddExtensionVarSize(0x26, (uint8_t*) value.c_str(), value.length());
+            header.AddExtensionVarSize(0x26, (uint8_t*) value.c_str(), value.length());
             if (verbose)
                 fprintf(stderr, "ODR-PadEnc SLS parameter: CategoryTitle = '%s'\n", value.c_str());
             continue;
