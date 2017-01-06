@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -308,13 +308,13 @@ private:
 
     void IncrementHeaderSize(size_t size);
     void AddParamHeader(int pli, int param_id) {data.push_back((pli << 6) | (param_id & 0x3F));}
+
+    void AddExtensionFixedSize(int pli, int param_id, const uint8_t* data_field, size_t data_field_len);
+    void AddExtensionVarSize(int param_id, const uint8_t* data_field, size_t data_field_len);
 public:
     MOTHeader(size_t body_size, int content_type, int content_subtype);
 
-    void AddExtension(int param_id);
-    void AddExtension8Bit(int param_id, uint8_t data_field);
-    void AddExtension32Bit(int param_id, uint32_t data_field);
-    void AddExtensionVarSize(int param_id, const uint8_t* data_field, size_t data_field_len);
+    void AddExtension(int param_id, const uint8_t* data_field, size_t data_field_len);
     const uint8_vector_t GetData() {return data;}
 };
 
@@ -351,27 +351,13 @@ void MOTHeader::IncrementHeaderSize(size_t size) {
     data[5] |= (header_size << 7) & 0x80;
 }
 
-void MOTHeader::AddExtension(int param_id) {
-    AddParamHeader(0b00, param_id);
+void MOTHeader::AddExtensionFixedSize(int pli, int param_id, const uint8_t* data_field, size_t data_field_len) {
+	AddParamHeader(pli, param_id);
 
-    IncrementHeaderSize(1);
-}
+	for (size_t i = 0; i < data_field_len; i++)
+		data.push_back(data_field[i]);
 
-void MOTHeader::AddExtension8Bit(int param_id, uint8_t data_field) {
-    AddParamHeader(0b01, param_id);
-    data.push_back(data_field);
-
-    IncrementHeaderSize(2);
-}
-
-void MOTHeader::AddExtension32Bit(int param_id, uint32_t data_field) {
-    AddParamHeader(0b10, param_id);
-    data.push_back((data_field >> 24) & 0xFF);
-    data.push_back((data_field >> 16) & 0xFF);
-    data.push_back((data_field >>  8) & 0xFF);
-    data.push_back( data_field        & 0xFF);
-
-    IncrementHeaderSize(5);
+	IncrementHeaderSize(1 + data_field_len);
 }
 
 void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, size_t data_field_len) {
@@ -390,6 +376,30 @@ void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, siz
         data.push_back(data_field[i]);
 
     IncrementHeaderSize(1 + (ext ? 2 : 1) + data_field_len);
+}
+
+void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t data_field_len) {
+	int pli;
+
+	switch(data_field_len) {
+	case 0:
+		pli = 0b00;
+		break;
+	case 1:
+		pli = 0b01;
+		break;
+	case 4:
+		pli = 0b10;
+		break;
+	default:
+		pli = 0b11;
+		break;
+	}
+
+	if (pli == 0b11)
+		AddExtensionVarSize(param_id, data_field, data_field_len);
+	else
+		AddExtensionFixedSize(pli, param_id, data_field, data_field_len);
 }
 
 
@@ -1451,7 +1461,7 @@ void process_mot_params_file(MOTHeader& header, const std::string &params_fname)
             uint8_t id_param[2];
             if (parse_sls_param_id("CategoryID", params[0], id_param[0]) &
                 parse_sls_param_id("SlideID", params[1], id_param[1])) {
-                header.AddExtensionVarSize(0x25, id_param, sizeof(id_param));
+                header.AddExtension(0x25, id_param, sizeof(id_param));
                 if (verbose)
                     fprintf(stderr, "ODR-PadEnc SLS parameter: CategoryID = %d / SlideID = %d\n", id_param[0], id_param[1]);
             }
@@ -1461,7 +1471,7 @@ void process_mot_params_file(MOTHeader& header, const std::string &params_fname)
             if(!check_sls_param_len("CategoryTitle", value.length(), 128))
                 continue;
 
-            header.AddExtensionVarSize(0x26, (uint8_t*) value.c_str(), value.length());
+            header.AddExtension(0x26, (uint8_t*) value.c_str(), value.length());
             if (verbose)
                 fprintf(stderr, "ODR-PadEnc SLS parameter: CategoryTitle = '%s'\n", value.c_str());
             continue;
@@ -1470,7 +1480,7 @@ void process_mot_params_file(MOTHeader& header, const std::string &params_fname)
             if(!check_sls_param_len("ClickThroughURL", value.length(), 512))
                 continue;
 
-            header.AddExtensionVarSize(0x27, (uint8_t*) value.c_str(), value.length());
+            header.AddExtension(0x27, (uint8_t*) value.c_str(), value.length());
             if (verbose)
                 fprintf(stderr, "ODR-PadEnc SLS parameter: ClickThroughURL = '%s'\n", value.c_str());
             continue;
@@ -1479,7 +1489,7 @@ void process_mot_params_file(MOTHeader& header, const std::string &params_fname)
             if(!check_sls_param_len("AlternativeLocationURL", value.length(), 512))
                 continue;
 
-            header.AddExtensionVarSize(0x28, (uint8_t*) value.c_str(), value.length());
+            header.AddExtension(0x28, (uint8_t*) value.c_str(), value.length());
             if (verbose)
                 fprintf(stderr, "ODR-PadEnc SLS parameter: AlternativeLocationURL = '%s'\n", value.c_str());
             continue;
@@ -1501,10 +1511,11 @@ uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, con
     MOTHeader header(blobsize, 0x02, jfif_not_png ? 0x001 : 0x003);
 
     // TriggerTime: NOW
-    header.AddExtension32Bit(0x05, 0x00000000);
+    uint8_t triggertime_now[4] = {0x00};
+    header.AddExtension(0x05, triggertime_now, sizeof(triggertime_now));
 
     // ContentName: XXXX.jpg / XXXX.png
-    header.AddExtensionVarSize(0x0C, cntemp, sizeof(cntemp) - 1);   // omit terminator
+    header.AddExtension(0x0C, cntemp, sizeof(cntemp) - 1);   // omit terminator
 
     // process params file if present
     process_mot_params_file(header, params_fname);
