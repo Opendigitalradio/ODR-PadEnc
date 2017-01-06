@@ -1,8 +1,11 @@
 ODR-PadEnc
 ==========
 
-ODR-PadEnc is an encoder for Programme Associated Data, and includes support
-for DAB MOT Slideshow and DLS.
+ODR-PadEnc is an encoder for Programme Associated Data (PAD) and includes
+support for:
+
+* MOT Slideshow (including catSLS), according to ETSI EN 301 234 and TS 101 499
+* DLS (including DL Plus), according to ETSI EN 300 401 and TS 102 980
 
 To encode DLS and Slideshow data, the *odr-padenc* tool reads images
 from a folder and DLS text from a file, and generates the PAD data
@@ -11,7 +14,7 @@ for the encoder.
 For detailed usage, see the usage screen of the tool with the *-h* option.
 
 More information is available on the
-[Opendigitalradio wiki](http://opendigitalradio.org)
+[Opendigitalradio wiki](http://wiki.opendigitalradio.org/ODR-PadEnc)
 
 How to build
 =============
