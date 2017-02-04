@@ -9,8 +9,11 @@ endif
 
 odr_padenc_CXXFLAGS = $(GITVERSION_FLAGS) @MAGICKWAND_CFLAGS@ -Icontrib -Wall -Wextra
 odr_padenc_LDADD    = @MAGICKWAND_LDADD@
-odr_padenc_SOURCES  = src/odr-padenc.cpp \
-					  src/crc.cpp
+odr_padenc_SOURCES  = \
+					  src/odr-padenc.cpp \
+					  src/charset.h \
+					  src/crc.cpp \
+					  src/crc.h
 
 bin_PROGRAMS = odr-padenc$(EXEEXT)
 
