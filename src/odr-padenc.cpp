@@ -27,6 +27,10 @@
     \author Stefan Pöschel <odr@basicmaster.de>
 */
 
+#ifdef HAVE_CONFIG_H
+#   include "config.h"
+#endif
+
 #include <cstdio>
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,48 +49,39 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <getopt.h>
-#include "config.h"
-#include "charset.h"
 
+#include "charset.h"
+#include "crc.h"
 
 #if HAVE_MAGICKWAND
 #  include <wand/magick_wand.h>
 #endif
 
-#define DEBUG 0
 
-#define SLEEPDELAY_DEFAULT 10 //seconds
 
-#include "crc.h"
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
+//#define DEBUG
+#define SLEEPDELAY_DEFAULT 10       // seconds
 
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
 
-#define MAXSEGLEN 8189 // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
-#define MAXDLS 128 // chars
-#define MAXSLIDESIZE 51200 // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
+static const size_t MAXDLS          =   128; // chars
+static const size_t MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
+static const size_t MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
 
-// Roll-over value for fidx
-#define MAXSLIDEID 9999
-
-// How many slides to keep in history
-#define MAXHISTORYLEN 50
-
-// Do not allow the image compressor to go below
-// JPEG quality 40
-#define MINQUALITY 40
+static const int    MAXSLIDEID      =  9999; // Roll-over value for fidx
+static const size_t MAXHISTORYLEN   =    50; // How many slides to keep in history
+static const int    MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
 
 // Charsets from TS 101 756
-#define CHARSET_COMPLETE_EBU_LATIN 0 //!< Complete EBU Latin based repertoire
-#define CHARSET_EBU_LATIN_CY_GR 1 //!< EBU Latin based common core, Cyrillic, Greek
-#define CHARSET_EBU_LATIN_AR_HE_CY_GR 2 //!< EBU Latin based core, Arabic, Hebrew, Cyrillic and Greek
-#define CHARSET_ISO_LATIN_ALPHABET_2 3 //!< ISO Latin Alphabet No 2
-#define CHARSET_UCS2_BE 6 //!< ISO/IEC 10646 using UCS-2 transformation format, big endian byte order
-#define CHARSET_UTF8 15 //!< ISO Latin Alphabet No 2
-
+enum {
+    CHARSET_COMPLETE_EBU_LATIN      =  0, //!< Complete EBU Latin based repertoire
+    CHARSET_EBU_LATIN_CY_GR         =  1, //!< EBU Latin based common core, Cyrillic, Greek
+    CHARSET_EBU_LATIN_AR_HE_CY_GR   =  2, //!< EBU Latin based core, Arabic, Hebrew, Cyrillic and Greek
+    CHARSET_ISO_LATIN_ALPHABET_2    =  3, //!< ISO Latin Alphabet No 2
+    CHARSET_UCS2_BE                 =  6, //!< ISO/IEC 10646 using UCS-2 transformation format, big endian byte order
+    CHARSET_UTF8                    = 15  //!< ISO Latin Alphabet No 2
+};
 
 typedef std::vector<uint8_t> uint8_vector_t;
 static int verbose = 0;
@@ -236,7 +231,6 @@ void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset);
 void writeDLS(int output_fd, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls);
 
 // PAD related
-#define CRC_LEN 2
 
 struct DATA_GROUP {
     uint8_vector_t data;
@@ -255,7 +249,7 @@ struct DATA_GROUP {
         uint16_t crc = 0xFFFF;
         crc = odr::crc16(crc, &data[0], data.size());
         crc = ~crc;
-#if DEBUG
+#ifdef DEBUG
         fprintf(stderr, "crc=%04x ~crc=%04x\n", crc, ~crc);
 #endif
 
@@ -287,9 +281,9 @@ struct DATA_GROUP {
     }
 };
 
-#define SHORT_PAD 6         // F-PAD + 1x CI              + 1x  3 bytes data sub-field
-#define VARSIZE_PAD_MIN 8   // F-PAD + 1x CI + end marker + 1x  4 bytes data sub-field
-#define VARSIZE_PAD_MAX 196 // F-PAD + 4x CI              + 4x 48 bytes data sub-field
+static const size_t SHORT_PAD       =   6; // F-PAD + 1x CI              + 1x  3 bytes data sub-field
+static const size_t VARSIZE_PAD_MIN =   8; // F-PAD + 1x CI + end marker + 1x  4 bytes data sub-field
+static const size_t VARSIZE_PAD_MAX = 196; // F-PAD + 4x CI              + 4x 48 bytes data sub-field
 #define ALLOWED_PADLEN "6 (short X-PAD), 8 to 196 (variable size X-PAD)"
 
 
@@ -298,7 +292,7 @@ struct DATA_GROUP {
 static int cindex_header = 0;
 static int cindex_body = 0;
 
-const std::string SLS_PARAMS_SUFFIX = ".sls_params";
+static const std::string SLS_PARAMS_SUFFIX = ".sls_params";
 
 
 class MOTHeader {
@@ -405,17 +399,19 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 
 
 // DLS related
-#define FPAD_LEN 2
-#define DLS_SEG_LEN_PREFIX       2
-#define DLS_SEG_LEN_CHAR_MAX    16
-#define DLS_CMD_REMOVE_LABEL    0b0001
-#define DLS_CMD_DL_PLUS         0b0010
-#define DL_PLUS_CMD_TAGS        0b0000
+static const size_t FPAD_LEN = 2;
+static const size_t DLS_SEG_LEN_PREFIX = 2;
+static const size_t DLS_SEG_LEN_CHAR_MAX = 16;
+enum {
+    DLS_CMD_REMOVE_LABEL = 0b0001,
+    DLS_CMD_DL_PLUS      = 0b0010
+};
+static const int DL_PLUS_CMD_TAGS = 0b0000;
 
 #define DL_PARAMS_OPEN          "##### parameters { #####"
 #define DL_PARAMS_CLOSE         "##### parameters } #####"
 
-CharsetConverter charset_converter;
+static CharsetConverter charset_converter;
 
 struct DL_PLUS_TAG {
     int content_type;
@@ -676,19 +672,19 @@ void PADPacketizer::AppendDGWithCI(DATA_GROUP* dg) {
     int apptype = WriteDGToSubField(dg, len_size);
     AddCI(apptype, len_index);
 
-#if DEBUG
+#ifdef DEBUG
     fprintf(stderr, "PADPacketizer: added sub-field w/  CI - type: %2d, size: %2zu\n", apptype, len_size);
 #endif
 }
 
 void PADPacketizer::AppendDGWithoutCI(DATA_GROUP* dg) {
-#if DEBUG
+#ifdef DEBUG
     int old_last_ci_type = last_ci_type;
 #endif
 
     WriteDGToSubField(dg, last_ci_size);
 
-#if DEBUG
+#ifdef DEBUG
     fprintf(stderr, "PADPacketizer: added sub-field w/o CI - type: %2d, size: %2zu\n", old_last_ci_type, last_ci_size);
 #endif
 }
@@ -810,7 +806,7 @@ int main(int argc, char *argv[])
 {
     int ret;
     struct dirent *pDirent;
-    int  padlen = 58;
+    size_t padlen = 58;
     bool erase_after_tx = false;
     int  sleepdelay = SLEEPDELAY_DEFAULT;
     bool raw_slides = false;
@@ -884,7 +880,7 @@ int main(int argc, char *argv[])
     }
 
     if (padlen != SHORT_PAD && (padlen < VARSIZE_PAD_MIN || padlen > VARSIZE_PAD_MAX)) {
-        fprintf(stderr, "ODR-PadEnc Error: pad length %d invalid: Possible values: "
+        fprintf(stderr, "ODR-PadEnc Error: pad length %zu invalid: Possible values: "
                 ALLOWED_PADLEN "\n",
                 padlen);
         return 2;
@@ -1010,7 +1006,7 @@ int main(int argc, char *argv[])
 
             closedir(pDir);
 
-#if DEBUG
+#ifdef DEBUG
             slides_history.disp_database();
 #endif
 
@@ -1446,7 +1442,7 @@ void process_mot_params_file(MOTHeader& header, const std::string &params_fname)
         }
         std::string key = line.substr(0, separator_pos);
         std::string value = line.substr(separator_pos + 1);
-#if DEBUG
+#ifdef DEBUG
         fprintf(stderr, "process_mot_params_file: key: '%s', value: '%s'\n", key.c_str(), value.c_str());
 #endif
 
@@ -1685,7 +1681,7 @@ void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
         }
         std::string key = line.substr(0, separator_pos);
         std::string value = line.substr(separator_pos + 1);
-#if DEBUG
+#ifdef DEBUG
         fprintf(stderr, "parse_dl_params: key: '%s', value: '%s'\n", key.c_str(), value.c_str());
 #endif
 
@@ -1838,7 +1834,7 @@ DATA_GROUP* dls_get(const std::string& text, uint8_t charset, int seg_index) {
 
     int seg_text_offset = seg_index * DLS_SEG_LEN_CHAR_MAX;
     const char *seg_text_start = text.c_str() + seg_text_offset;
-    size_t seg_text_len = MIN(text.size() - seg_text_offset, DLS_SEG_LEN_CHAR_MAX);
+    size_t seg_text_len = std::min(text.size() - seg_text_offset, DLS_SEG_LEN_CHAR_MAX);
 
     DATA_GROUP* dg = new DATA_GROUP(DLS_SEG_LEN_PREFIX + seg_text_len, 2, 3);
     uint8_vector_t &seg_data = dg->data;
@@ -1859,7 +1855,7 @@ DATA_GROUP* dls_get(const std::string& text, uint8_t charset, int seg_index) {
     // CRC
     dg->AppendCRC();
 
-#if DEBUG
+#ifdef DEBUG
     fprintf(stderr, "DL segment:");
     for (int i = 0; i < seg_data.size(); i++)
         fprintf(stderr, " %02x", seg_data[i]);
@@ -1874,7 +1870,7 @@ void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset) {
     int seg_count = dls_count(dl_state.dl_text);
     std::vector<DATA_GROUP*> segs;
     for (int seg_index = 0; seg_index < seg_count; seg_index++) {
-#if DEBUG
+#ifdef DEBUG
         fprintf(stderr, "Segment number %d\n", seg_index + 1);
 #endif
         segs.push_back(dls_get(dl_state.dl_text, charset, seg_index));
@@ -1887,7 +1883,7 @@ void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset) {
     // prepend to packetizer
     pad_packetizer->queue.insert(pad_packetizer->queue.begin(), segs.begin(), segs.end());
 
-#if DEBUG
+#ifdef DEBUG
     fprintf(stderr, "PAD length: %d\n", padlen);
     fprintf(stderr, "DLS text: %s\n", text.c_str());
     fprintf(stderr, "Number of DL segments: %d\n", seg_count);
@@ -1954,4 +1950,3 @@ int History::get_fidx(const char* filepath)
 
     return idx;
 }
-
