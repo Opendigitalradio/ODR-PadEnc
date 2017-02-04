@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "common.h"
+
 #include <stdint.h>
 
 namespace odr{

@@ -27,9 +27,7 @@
     \author Stefan Pöschel <odr@basicmaster.de>
 */
 
-#ifdef HAVE_CONFIG_H
-#   include "config.h"
-#endif
+#include "common.h"
 
 #include <cstdio>
 #include <stdlib.h>
@@ -59,7 +57,6 @@
 
 
 
-//#define DEBUG
 #define SLEEPDELAY_DEFAULT 10       // seconds
 
 #define XSTR(x) #x
@@ -84,8 +81,7 @@ enum {
 };
 
 typedef std::vector<uint8_t> uint8_vector_t;
-static int verbose = 0;
-
+int verbose = 0;
 
 struct MSCDG {
     // MSC Data Group Header (extension field not supported)

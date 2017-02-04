@@ -25,6 +25,8 @@
 #ifndef __CHARSET_H_
 #define __CHARSET_H_
 
+#include "common.h"
+
 #include "utf8.h"
 #include <string>
 #include <vector>
