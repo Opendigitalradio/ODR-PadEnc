@@ -105,9 +105,10 @@ public:
 
     void AddDG(DATA_GROUP* dg, bool prepend);
     void AddDGs(const std::vector<DATA_GROUP*>& dgs, bool prepend);
+    bool QueueFilled();
 
     pad_t* GetPAD();
 
     // will be removed, when pull (instead of push) approach is implemented!
-    void WriteAllPADs(int output_fd);
+    void WriteAllPADs(int output_fd, int limit = -1);
 };

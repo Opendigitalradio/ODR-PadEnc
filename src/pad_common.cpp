@@ -99,11 +99,15 @@ PADPacketizer::~PADPacketizer() {
 }
 
 void PADPacketizer::AddDG(DATA_GROUP* dg, bool prepend) {
-	queue.insert(prepend ? queue.begin() : queue.end(), dg);
+    queue.insert(prepend ? queue.begin() : queue.end(), dg);
 }
 
 void PADPacketizer::AddDGs(const std::vector<DATA_GROUP*>& dgs, bool prepend) {
-	queue.insert(prepend ? queue.begin() : queue.end(), dgs.cbegin(), dgs.cend());
+    queue.insert(prepend ? queue.begin() : queue.end(), dgs.cbegin(), dgs.cend());
+}
+
+bool PADPacketizer::QueueFilled() {
+    return !queue.empty();
 }
 
 pad_t* PADPacketizer::GetPAD() {
@@ -127,8 +131,9 @@ pad_t* PADPacketizer::GetPAD() {
     return FlushPAD();
 }
 
-void PADPacketizer::WriteAllPADs(int output_fd) {
-    for (;;) {
+void PADPacketizer::WriteAllPADs(int output_fd, int limit) {
+    // output a limited amount of PADs (-1 = no limit)
+    for (int i = 0; i != limit; i++) {
         pad_t* pad = GetPAD();
 
         // if only F-PAD present, abort

@@ -200,7 +200,7 @@ class History {
 };
 
 
-int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slides);
+int encodeFile(const std::string& fname, int fidx, bool raw_slides);
 
 uint8_vector_t createMotHeader(
         size_t blobsize,
@@ -216,7 +216,7 @@ DATA_GROUP* packMscDG(MSCDG* msc);
 
 struct DL_STATE;
 void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset);
-void writeDLS(int output_fd, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls);
+void writeDLS(const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls);
 
 
 // MOT Slideshow related
@@ -332,6 +332,7 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 // DLS related
 static const size_t DLS_SEG_LEN_PREFIX = 2;
 static const size_t DLS_SEG_LEN_CHAR_MAX = 16;
+static const int DLS_REPETITION_WHILE_SLS = 50;
 enum {
     DLS_CMD_REMOVE_LABEL = 0b0001,
     DLS_CMD_DL_PLUS      = 0b0010
@@ -687,8 +688,10 @@ int main(int argc, char *argv[])
 
             // if ATM no slides, transmit at least DLS
             if (slides_to_transmit.empty()) {
-                if (not dls_file.empty())
-                    writeDLS(output_fd, dls_file, charset, raw_dls, remove_dls);
+                if (not dls_file.empty()) {
+                    writeDLS(dls_file, charset, raw_dls, remove_dls);
+                    pad_packetizer->WriteAllPADs(output_fd);
+                }
 
                 sleep(sleepdelay);
             } else {
@@ -700,7 +703,7 @@ int main(int argc, char *argv[])
                         it != slides_to_transmit.cend();
                         ++it) {
 
-                    ret = encodeFile(output_fd, it->filepath, it->fidx, raw_slides);
+                    ret = encodeFile(it->filepath, it->fidx, raw_slides);
                     if (ret != 1)
                         fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", it->filepath.c_str());
 
@@ -711,9 +714,18 @@ int main(int argc, char *argv[])
                         }
                     }
 
-                    // Always retransmit DLS after each slide, we want it to be updated frequently
+                    // while flushing, insert DLS after a certain PAD amout
+                    while (pad_packetizer->QueueFilled()) {
+                        if (not dls_file.empty())
+                            writeDLS(dls_file, charset, raw_dls, remove_dls);
+
+                        pad_packetizer->WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
+                    }
+
+                    // after the slide, output a last DLS
                     if (not dls_file.empty())
-                        writeDLS(output_fd, dls_file, charset, raw_dls, remove_dls);
+                        writeDLS(dls_file, charset, raw_dls, remove_dls);
+                    pad_packetizer->WriteAllPADs(output_fd);
 
                     sleep(sleepdelay);
                 }
@@ -722,7 +734,8 @@ int main(int argc, char *argv[])
             }
         } else { // only DLS
             // Always retransmit DLS, we want it to be updated frequently
-            writeDLS(output_fd, dls_file, charset, raw_dls, remove_dls);
+            writeDLS(dls_file, charset, raw_dls, remove_dls);
+            pad_packetizer->WriteAllPADs(output_fd);
 
             sleep(sleepdelay);
         }
@@ -837,7 +850,7 @@ size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& 
 }
 #endif
 
-int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slides)
+int encodeFile(const std::string& fname, int fidx, bool raw_slides)
 {
     int ret = 0;
     int nseg, lastseglen, i, last, curseglen;
@@ -1059,8 +1072,6 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
             pad_packetizer->AddDG(dgli, false);
             pad_packetizer->AddDG(mscdg, false);
         }
-
-        pad_packetizer->WriteAllPADs(output_fd);
 
         ret = 1;
     }
@@ -1400,7 +1411,7 @@ void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
 }
 
 
-void writeDLS(int output_fd, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls)
+void writeDLS(const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls)
 {
     std::ifstream dls_fstream(dls_file);
     if (!dls_fstream.is_open()) {
@@ -1493,7 +1504,6 @@ void writeDLS(int output_fd, const std::string& dls_file, uint8_t charset, bool 
     prepend_dl_dgs(dl_state, charset);
     if (remove_label_dg)
         pad_packetizer->AddDG(remove_label_dg, true);
-    pad_packetizer->WriteAllPADs(output_fd);
 }
 
 
