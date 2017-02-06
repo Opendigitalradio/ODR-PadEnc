@@ -277,12 +277,12 @@ void MOTHeader::IncrementHeaderSize(size_t size) {
 }
 
 void MOTHeader::AddExtensionFixedSize(int pli, int param_id, const uint8_t* data_field, size_t data_field_len) {
-	AddParamHeader(pli, param_id);
+    AddParamHeader(pli, param_id);
 
-	for (size_t i = 0; i < data_field_len; i++)
-		data.push_back(data_field[i]);
+    for (size_t i = 0; i < data_field_len; i++)
+        data.push_back(data_field[i]);
 
-	IncrementHeaderSize(1 + data_field_len);
+    IncrementHeaderSize(1 + data_field_len);
 }
 
 void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, size_t data_field_len) {
@@ -304,27 +304,27 @@ void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, siz
 }
 
 void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t data_field_len) {
-	int pli;
+    int pli;
 
-	switch(data_field_len) {
-	case 0:
-		pli = 0b00;
-		break;
-	case 1:
-		pli = 0b01;
-		break;
-	case 4:
-		pli = 0b10;
-		break;
-	default:
-		pli = 0b11;
-		break;
-	}
+    switch(data_field_len) {
+    case 0:
+        pli = 0b00;
+        break;
+    case 1:
+        pli = 0b01;
+        break;
+    case 4:
+        pli = 0b10;
+        break;
+    default:
+        pli = 0b11;
+        break;
+    }
 
-	if (pli == 0b11)
-		AddExtensionVarSize(param_id, data_field, data_field_len);
-	else
-		AddExtensionFixedSize(pli, param_id, data_field, data_field_len);
+    if (pli == 0b11)
+        AddExtensionVarSize(param_id, data_field, data_field_len);
+    else
+        AddExtensionFixedSize(pli, param_id, data_field, data_field_len);
 }
 
 
