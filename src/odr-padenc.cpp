@@ -200,7 +200,7 @@ class History {
 };
 
 
-int encodeFile(const std::string& fname, int fidx, bool raw_slides);
+int encodeFile(PADPacketizer& pad_packetizer, const std::string& fname, int fidx, bool raw_slides);
 
 uint8_vector_t createMotHeader(
         size_t blobsize,
@@ -215,8 +215,8 @@ void createMscDG(MSCDG* msc, unsigned short int dgtype, int *cindex, unsigned sh
 DATA_GROUP* packMscDG(MSCDG* msc);
 
 struct DL_STATE;
-void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset);
-void writeDLS(const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls);
+void prepend_dl_dgs(PADPacketizer& pad_packetizer, const DL_STATE& dl_state, uint8_t charset);
+void writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls);
 
 
 // MOT Slideshow related
@@ -411,9 +411,6 @@ struct DL_STATE {
 
 static bool dls_toggle = false;
 static DL_STATE dl_state_prev;
-
-static PADPacketizer *pad_packetizer;
-
 
 std::vector<std::string> split_string(const std::string &s, const char delimiter) {
     std::vector<std::string> result;
@@ -640,7 +637,7 @@ int main(int argc, char *argv[])
     MagickWandGenesis();
 #endif
 
-    pad_packetizer = new PADPacketizer(padlen);
+    PADPacketizer pad_packetizer(padlen);
 
     std::list<slide_metadata_t> slides_to_transmit;
     History slides_history(MAXHISTORYLEN);
@@ -689,8 +686,8 @@ int main(int argc, char *argv[])
             // if ATM no slides, transmit at least DLS
             if (slides_to_transmit.empty()) {
                 if (not dls_file.empty()) {
-                    writeDLS(dls_file, charset, raw_dls, remove_dls);
-                    pad_packetizer->WriteAllPADs(output_fd);
+                    writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+                    pad_packetizer.WriteAllPADs(output_fd);
                 }
 
                 sleep(sleepdelay);
@@ -703,7 +700,7 @@ int main(int argc, char *argv[])
                         it != slides_to_transmit.cend();
                         ++it) {
 
-                    ret = encodeFile(it->filepath, it->fidx, raw_slides);
+                    ret = encodeFile(pad_packetizer, it->filepath, it->fidx, raw_slides);
                     if (ret != 1)
                         fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", it->filepath.c_str());
 
@@ -715,17 +712,17 @@ int main(int argc, char *argv[])
                     }
 
                     // while flushing, insert DLS after a certain PAD amout
-                    while (pad_packetizer->QueueFilled()) {
+                    while (pad_packetizer.QueueFilled()) {
                         if (not dls_file.empty())
-                            writeDLS(dls_file, charset, raw_dls, remove_dls);
+                            writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
 
-                        pad_packetizer->WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
+                        pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
                     }
 
                     // after the slide, output a last DLS
                     if (not dls_file.empty())
-                        writeDLS(dls_file, charset, raw_dls, remove_dls);
-                    pad_packetizer->WriteAllPADs(output_fd);
+                        writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+                    pad_packetizer.WriteAllPADs(output_fd);
 
                     sleep(sleepdelay);
                 }
@@ -734,14 +731,12 @@ int main(int argc, char *argv[])
             }
         } else { // only DLS
             // Always retransmit DLS, we want it to be updated frequently
-            writeDLS(dls_file, charset, raw_dls, remove_dls);
-            pad_packetizer->WriteAllPADs(output_fd);
+            writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+            pad_packetizer.WriteAllPADs(output_fd);
 
             sleep(sleepdelay);
         }
     }
-
-    delete pad_packetizer;
 
     return 1;
 }
@@ -850,7 +845,7 @@ size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& 
 }
 #endif
 
-int encodeFile(const std::string& fname, int fidx, bool raw_slides)
+int encodeFile(PADPacketizer& pad_packetizer, const std::string& fname, int fidx, bool raw_slides)
 {
     int ret = 0;
     int nseg, lastseglen, i, last, curseglen;
@@ -1051,8 +1046,8 @@ int encodeFile(const std::string& fname, int fidx, bool raw_slides)
         mscdg = packMscDG(&msc);
         dgli = createDataGroupLengthIndicator(mscdg->data.size());
 
-        pad_packetizer->AddDG(dgli, false);
-        pad_packetizer->AddDG(mscdg, false);
+        pad_packetizer.AddDG(dgli, false);
+        pad_packetizer.AddDG(mscdg, false);
 
         for (i = 0; i < nseg; i++) {
             curseg = blob + i * MAXSEGLEN;
@@ -1069,8 +1064,8 @@ int encodeFile(const std::string& fname, int fidx, bool raw_slides)
             mscdg = packMscDG(&msc);
             dgli = createDataGroupLengthIndicator(mscdg->data.size());
 
-            pad_packetizer->AddDG(dgli, false);
-            pad_packetizer->AddDG(mscdg, false);
+            pad_packetizer.AddDG(dgli, false);
+            pad_packetizer.AddDG(mscdg, false);
         }
 
         ret = 1;
@@ -1411,7 +1406,7 @@ void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
 }
 
 
-void writeDLS(const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls)
+void writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls)
 {
     std::ifstream dls_fstream(dls_file);
     if (!dls_fstream.is_open()) {
@@ -1501,9 +1496,9 @@ void writeDLS(const std::string& dls_file, uint8_t charset, bool raw_dls, bool r
         dl_state_prev = dl_state;
     }
 
-    prepend_dl_dgs(dl_state, charset);
+    prepend_dl_dgs(pad_packetizer, dl_state, charset);
     if (remove_label_dg)
-        pad_packetizer->AddDG(remove_label_dg, true);
+        pad_packetizer.AddDG(remove_label_dg, true);
 }
 
 
@@ -1550,7 +1545,7 @@ DATA_GROUP* dls_get(const std::string& text, uint8_t charset, int seg_index) {
 }
 
 
-void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset) {
+void prepend_dl_dgs(PADPacketizer& pad_packetizer, const DL_STATE& dl_state, uint8_t charset) {
     // process all DL segments
     int seg_count = dls_count(dl_state.dl_text);
     std::vector<DATA_GROUP*> segs;
@@ -1566,7 +1561,7 @@ void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset) {
         segs.push_back(createDynamicLabelPlus(dl_state));
 
     // prepend to packetizer
-    pad_packetizer->AddDGs(segs, true);
+    pad_packetizer.AddDGs(segs, true);
 
 #ifdef DEBUG
     fprintf(stderr, "PAD length: %d\n", padlen);
