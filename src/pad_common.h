@@ -65,6 +65,8 @@ private:
     const bool short_xpad;
     const size_t max_cis;
 
+    std::deque<DATA_GROUP*> queue;
+
     size_t xpad_size;
     uint8_t subfields[4*48];
     size_t subfields_size;
@@ -98,10 +100,11 @@ public:
     static const size_t VARSIZE_PAD_MAX;
     static const std::string ALLOWED_PADLEN;
 
-    std::deque<DATA_GROUP*> queue;
-
     PADPacketizer(size_t pad_size);
     ~PADPacketizer();
+
+    void AddDG(DATA_GROUP* dg, bool prepend);
+    void AddDGs(const std::vector<DATA_GROUP*>& dgs, bool prepend);
 
     pad_t* GetPAD();
 

@@ -98,6 +98,13 @@ PADPacketizer::~PADPacketizer() {
     }
 }
 
+void PADPacketizer::AddDG(DATA_GROUP* dg, bool prepend) {
+	queue.insert(prepend ? queue.begin() : queue.end(), dg);
+}
+
+void PADPacketizer::AddDGs(const std::vector<DATA_GROUP*>& dgs, bool prepend) {
+	queue.insert(prepend ? queue.begin() : queue.end(), dgs.cbegin(), dgs.cend());
+}
 
 pad_t* PADPacketizer::GetPAD() {
     bool pad_flushable = false;

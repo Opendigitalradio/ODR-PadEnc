@@ -1038,8 +1038,8 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
         mscdg = packMscDG(&msc);
         dgli = createDataGroupLengthIndicator(mscdg->data.size());
 
-        pad_packetizer->queue.push_back(dgli);
-        pad_packetizer->queue.push_back(mscdg);
+        pad_packetizer->AddDG(dgli, false);
+        pad_packetizer->AddDG(mscdg, false);
 
         for (i = 0; i < nseg; i++) {
             curseg = blob + i * MAXSEGLEN;
@@ -1056,8 +1056,8 @@ int encodeFile(int output_fd, const std::string& fname, int fidx, bool raw_slide
             mscdg = packMscDG(&msc);
             dgli = createDataGroupLengthIndicator(mscdg->data.size());
 
-            pad_packetizer->queue.push_back(dgli);
-            pad_packetizer->queue.push_back(mscdg);
+            pad_packetizer->AddDG(dgli, false);
+            pad_packetizer->AddDG(mscdg, false);
         }
 
         pad_packetizer->WriteAllPADs(output_fd);
@@ -1492,7 +1492,7 @@ void writeDLS(int output_fd, const std::string& dls_file, uint8_t charset, bool 
 
     prepend_dl_dgs(dl_state, charset);
     if (remove_label_dg)
-        pad_packetizer->queue.push_front(remove_label_dg);
+        pad_packetizer->AddDG(remove_label_dg, true);
     pad_packetizer->WriteAllPADs(output_fd);
 }
 
@@ -1556,7 +1556,7 @@ void prepend_dl_dgs(const DL_STATE& dl_state, uint8_t charset) {
         segs.push_back(createDynamicLabelPlus(dl_state));
 
     // prepend to packetizer
-    pad_packetizer->queue.insert(pad_packetizer->queue.begin(), segs.begin(), segs.end());
+    pad_packetizer->AddDGs(segs, true);
 
 #ifdef DEBUG
     fprintf(stderr, "PAD length: %d\n", padlen);
