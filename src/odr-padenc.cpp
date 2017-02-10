@@ -74,8 +74,6 @@ enum {
     CHARSET_UTF8                    = 15  //!< ISO Latin Alphabet No 2
 };
 
-int verbose = 0;
-
 struct MSCDG {
     // MSC Data Group Header (extension field not supported)
     unsigned char extflag;      //  1 bit
@@ -411,16 +409,6 @@ struct DL_STATE {
 
 static bool dls_toggle = false;
 static DL_STATE dl_state_prev;
-
-std::vector<std::string> split_string(const std::string &s, const char delimiter) {
-    std::vector<std::string> result;
-    std::stringstream ss(s);
-    std::string part;
-
-    while (std::getline(ss, part, delimiter))
-        result.push_back(part);
-    return result;
-}
 
 
 

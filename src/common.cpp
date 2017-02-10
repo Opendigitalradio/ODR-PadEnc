@@ -15,30 +15,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*!
-    \file common.h
+    \file common.cpp
     \brief Includes common settings/includes/etc.
 
     \author Stefan Pöschel <odr@basicmaster.de>
 */
 
-#ifndef COMMON_H_
-#define COMMON_H_
+#include "common.h"
 
-// enable for debug output
-//#define DEBUG
+int verbose = 0;
 
-// include settings by configure
-#ifdef HAVE_CONFIG_H
-#   include "config.h"
-#endif
+std::vector<std::string> split_string(const std::string &s, const char delimiter) {
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string part;
 
-
-#include <string>
-#include <vector>
-#include <sstream>
-
-
-extern int verbose;
-extern std::vector<std::string> split_string(const std::string &s, const char delimiter);
-
-#endif /* COMMON_H_ */
+    while (std::getline(ss, part, delimiter))
+        result.push_back(part);
+    return result;
+}
