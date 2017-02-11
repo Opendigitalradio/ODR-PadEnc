@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
 
     PADPacketizer pad_packetizer(padlen);
     DLSManager dls_manager(&pad_packetizer);
-    SLSManager sls_manager;
+    SLSManager sls_manager(&pad_packetizer);
 
     std::list<slide_metadata_t> slides_to_transmit;
     History slides_history(History::MAXHISTORYLEN);
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
                         it != slides_to_transmit.cend();
                         ++it) {
 
-                    ret = sls_manager.encodeFile(pad_packetizer, it->filepath, it->fidx, raw_slides);
+                    ret = sls_manager.encodeFile(it->filepath, it->fidx, raw_slides);
                     if (ret != 1)
                         fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", it->filepath.c_str());
 

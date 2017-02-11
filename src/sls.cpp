@@ -33,6 +33,7 @@
 // --- History -----------------------------------------------------------------
 const size_t History::MAXHISTORYLEN   =    50; // How many slides to keep in history
 
+
 int History::find(const fingerprint_t& fp) const
 {
     size_t i;
@@ -47,6 +48,7 @@ int History::find(const fingerprint_t& fp) const
     return -1;
 }
 
+
 void History::add(fingerprint_t& fp)
 {
     m_database.push_back(fp);
@@ -55,6 +57,7 @@ void History::add(fingerprint_t& fp)
         m_database.pop_front();
     }
 }
+
 
 void History::disp_database()
 {
@@ -71,6 +74,7 @@ void History::disp_database()
     }
     printf("-----------------\n");
 }
+
 
 int History::get_fidx(const char* filepath)
 {
@@ -117,6 +121,7 @@ MOTHeader::MOTHeader(size_t body_size, int content_type, int content_subtype)
     data[6] |=  content_subtype       & 0xFF;
 }
 
+
 void MOTHeader::IncrementHeaderSize(size_t size) {
     header_size += size;
 
@@ -129,6 +134,7 @@ void MOTHeader::IncrementHeaderSize(size_t size) {
     data[5] |= (header_size << 7) & 0x80;
 }
 
+
 void MOTHeader::AddExtensionFixedSize(int pli, int param_id, const uint8_t* data_field, size_t data_field_len) {
     AddParamHeader(pli, param_id);
 
@@ -137,6 +143,7 @@ void MOTHeader::AddExtensionFixedSize(int pli, int param_id, const uint8_t* data
 
     IncrementHeaderSize(1 + data_field_len);
 }
+
 
 void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, size_t data_field_len) {
     AddParamHeader(0b11, param_id);
@@ -155,6 +162,7 @@ void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, siz
 
     IncrementHeaderSize(1 + (ext ? 2 : 1) + data_field_len);
 }
+
 
 void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t data_field_len) {
     int pli;
@@ -187,7 +195,6 @@ const size_t SLSManager::MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, c
 const int    SLSManager::MAXSLIDEID      =  9999; // Roll-over value for fidx
 const int    SLSManager::MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
 const std::string SLSManager::SLS_PARAMS_SUFFIX = ".sls_params";
-
 
 
 void SLSManager::warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {
@@ -278,7 +285,8 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 }
 #endif
 
-int SLSManager::encodeFile(PADPacketizer& pad_packetizer, const std::string& fname, int fidx, bool raw_slides)
+
+int SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
 {
     int ret = 0;
     int nseg, lastseglen, i, last, curseglen;
@@ -479,8 +487,8 @@ int SLSManager::encodeFile(PADPacketizer& pad_packetizer, const std::string& fna
         mscdg = packMscDG(&msc);
         dgli = PADPacketizer::CreateDataGroupLengthIndicator(mscdg->data.size());
 
-        pad_packetizer.AddDG(dgli, false);
-        pad_packetizer.AddDG(mscdg, false);
+        pad_packetizer->AddDG(dgli, false);
+        pad_packetizer->AddDG(mscdg, false);
 
         for (i = 0; i < nseg; i++) {
             curseg = blob + i * MAXSEGLEN;
@@ -497,8 +505,8 @@ int SLSManager::encodeFile(PADPacketizer& pad_packetizer, const std::string& fna
             mscdg = packMscDG(&msc);
             dgli = PADPacketizer::CreateDataGroupLengthIndicator(mscdg->data.size());
 
-            pad_packetizer.AddDG(dgli, false);
-            pad_packetizer.AddDG(mscdg, false);
+            pad_packetizer->AddDG(dgli, false);
+            pad_packetizer->AddDG(mscdg, false);
         }
 
         ret = 1;

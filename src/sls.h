@@ -213,6 +213,7 @@ private:
             unsigned short int datalen);
     DATA_GROUP* packMscDG(MSCDG* msc);
 
+    PADPacketizer* pad_packetizer;
     int cindex_header;
     int cindex_body;
 public:
@@ -222,9 +223,9 @@ public:
     static const int    MINQUALITY;
     static const std::string SLS_PARAMS_SUFFIX;
 
-    SLSManager() : cindex_header(0), cindex_body(0) {}
+    SLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
-    int encodeFile(PADPacketizer& pad_packetizer, const std::string& fname, int fidx, bool raw_slides);
+    int encodeFile(const std::string& fname, int fidx, bool raw_slides);
 };
 
 #endif /* SLS_H_ */
