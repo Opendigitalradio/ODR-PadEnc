@@ -27,6 +27,9 @@
     \author Stefan Pöschel <odr@basicmaster.de>
 */
 
+#ifndef PAD_COMMON_H_
+#define PAD_COMMON_H_
+
 #include <cstdio>
 #include <vector>
 #include <deque>
@@ -112,3 +115,5 @@ public:
     // will be removed, when pull (instead of push) approach is implemented!
     void WriteAllPADs(int output_fd, int limit = -1);
 };
+
+#endif /* PAD_COMMON_H_ */
