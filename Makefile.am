@@ -17,6 +17,8 @@ odr_padenc_SOURCES  = \
 					  src/pad_common.h \
 					  src/dls.cpp \
 					  src/dls.h \
+					  src/sls.cpp \
+					  src/sls.h \
 					  src/charset.cpp \
 					  src/charset.h \
 					  src/crc.cpp \

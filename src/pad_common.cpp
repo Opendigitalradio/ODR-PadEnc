@@ -297,3 +297,17 @@ pad_t* PADPacketizer::FlushPAD() {
     ResetPAD();
     return result;
 }
+
+DATA_GROUP* PADPacketizer::CreateDataGroupLengthIndicator(size_t len) {
+    DATA_GROUP* dg = new DATA_GROUP(2, 1, 1);    // continuation never used (except for comparison at short X-PAD)
+    uint8_vector_t &data = dg->data;
+
+    // Data Group length
+    data[0] = (len & 0x3F00) >> 8;
+    data[1] = (len & 0x00FF);
+
+    // CRC
+    dg->AppendCRC();
+
+    return dg;
+}
