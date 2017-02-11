@@ -46,6 +46,15 @@ typedef std::vector<uint8_t> uint8_vector_t;
 typedef uint8_vector_t pad_t;
 
 
+// Charsets from TS 101 756
+enum class DABCharset : uint8_t {
+    COMPLETE_EBU_LATIN      =  0, //!< Complete EBU Latin based repertoire
+    EBU_LATIN_CY_GR         =  1, //!< EBU Latin based common core, Cyrillic, Greek
+    EBU_LATIN_AR_HE_CY_GR   =  2, //!< EBU Latin based core, Arabic, Hebrew, Cyrillic and Greek
+    ISO_LATIN_ALPHABET_2    =  3, //!< ISO Latin Alphabet No 2
+    UCS2_BE                 =  6, //!< ISO/IEC 10646 using UCS-2 transformation format, big endian byte order
+    UTF8                    = 15  //!< ISO Latin Alphabet No 2
+};
 
 // --- DATA_GROUP -----------------------------------------------------------------
 struct DATA_GROUP {

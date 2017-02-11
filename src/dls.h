@@ -37,16 +37,6 @@
 #include "charset.h"
 
 
-// Charsets from TS 101 756
-enum {
-    CHARSET_COMPLETE_EBU_LATIN      =  0, //!< Complete EBU Latin based repertoire
-    CHARSET_EBU_LATIN_CY_GR         =  1, //!< EBU Latin based common core, Cyrillic, Greek
-    CHARSET_EBU_LATIN_AR_HE_CY_GR   =  2, //!< EBU Latin based core, Arabic, Hebrew, Cyrillic and Greek
-    CHARSET_ISO_LATIN_ALPHABET_2    =  3, //!< ISO Latin Alphabet No 2
-    CHARSET_UCS2_BE                 =  6, //!< ISO/IEC 10646 using UCS-2 transformation format, big endian byte order
-    CHARSET_UTF8                    = 15  //!< ISO Latin Alphabet No 2
-};
-
 // DL/DL+ commands
 enum {
     DLS_CMD_REMOVE_LABEL = 0b0001,
@@ -134,9 +124,10 @@ private:
     bool parse_dl_param_int_dl_plus_tag(const std::string &key, const std::string &value, int &target);
     void parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state);
     int dls_count(const std::string& text);
-    DATA_GROUP* dls_get(const std::string& text, uint8_t charset, int seg_index);
-    void prepend_dl_dgs(PADPacketizer& pad_packetizer, const DL_STATE& dl_state, uint8_t charset);
+    DATA_GROUP* dls_get(const std::string& text, DABCharset charset, int seg_index);
+    void prepend_dl_dgs(const DL_STATE& dl_state, DABCharset charset);
 
+    PADPacketizer* pad_packetizer;
     CharsetConverter charset_converter;
     bool dls_toggle;
     DL_STATE dl_state_prev;
@@ -148,8 +139,8 @@ public:
     static const std::string DL_PARAMS_OPEN;
     static const std::string DL_PARAMS_CLOSE;
 
-    DLSManager() : dls_toggle(false) {}
-    void writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls);
+    DLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
+    void writeDLS(const std::string& dls_file, DABCharset charset, bool raw_dls, bool remove_dls);
 };
 
 #endif /* DLS_H_ */

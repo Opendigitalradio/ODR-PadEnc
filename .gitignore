@@ -29,3 +29,8 @@ missing
 stamp-h1
 mot-encoder
 odr-padenc
+
+# Eclipse
+/.cproject
+/.project
+/.settings/

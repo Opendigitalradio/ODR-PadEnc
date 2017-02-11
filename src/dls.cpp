@@ -51,8 +51,8 @@ DATA_GROUP* DLSManager::createDynamicLabelCommand(uint8_t command) {
             (1 << 4) +
             command;
 
-    // prefix: charset (though irrelevant here)
-    seg_data[1] = CHARSET_COMPLETE_EBU_LATIN;
+    // prefix: reserved
+    seg_data[1] = 0;
 
     // CRC
     dg->AppendCRC();
@@ -186,7 +186,7 @@ void DLSManager::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state)
 }
 
 
-void DLSManager::writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_file, uint8_t charset, bool raw_dls, bool remove_dls) {
+void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool raw_dls, bool remove_dls) {
     std::ifstream dls_fstream(dls_file);
     if (!dls_fstream.is_open()) {
         std::cerr << "Could not open " << dls_file << std::endl;
@@ -206,7 +206,7 @@ void DLSManager::writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_
         if (line == DL_PARAMS_OPEN) {
             parse_dl_params(dls_fstream, dl_state);
         } else {
-            if (not raw_dls && charset == CHARSET_UTF8) {
+            if (not raw_dls && charset == DABCharset::UTF8) {
                 dls_lines.push_back(charset_converter.convert(line));
             }
             else {
@@ -219,14 +219,14 @@ void DLSManager::writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_
     std::stringstream ss;
     for (size_t i = 0; i < dls_lines.size(); i++) {
         if (i != 0) {
-            if (charset == CHARSET_UCS2_BE)
+            if (charset == DABCharset::UCS2_BE)
                 ss << '\0' << '\n';
             else
                 ss << '\n';
         }
 
         // UCS-2 BE: if from file the first byte of \0\n remains, remove it
-        if (charset == CHARSET_UCS2_BE && dls_lines[i].size() % 2) {
+        if (charset == DABCharset::UCS2_BE && dls_lines[i].size() % 2) {
             dls_lines[i].resize(dls_lines[i].size() - 1);
         }
 
@@ -243,7 +243,7 @@ void DLSManager::writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_
         dl_state.dl_plus_tags.push_back(DL_PLUS_TAG());
 
     if (not raw_dls)
-        charset = CHARSET_COMPLETE_EBU_LATIN;
+        charset = DABCharset::COMPLETE_EBU_LATIN;
 
 
     // toggle the toggle bit only on new DL state
@@ -275,9 +275,9 @@ void DLSManager::writeDLS(PADPacketizer& pad_packetizer, const std::string& dls_
         dl_state_prev = dl_state;
     }
 
-    prepend_dl_dgs(pad_packetizer, dl_state, charset);
+    prepend_dl_dgs(dl_state, charset);
     if (remove_label_dg)
-        pad_packetizer.AddDG(remove_label_dg, true);
+        pad_packetizer->AddDG(remove_label_dg, true);
 }
 
 
@@ -287,7 +287,7 @@ int DLSManager::dls_count(const std::string& text) {
 }
 
 
-DATA_GROUP* DLSManager::dls_get(const std::string& text, uint8_t charset, int seg_index) {
+DATA_GROUP* DLSManager::dls_get(const std::string& text, DABCharset charset, int seg_index) {
     bool first_seg = seg_index == 0;
     bool last_seg  = seg_index == dls_count(text) - 1;
 
@@ -306,7 +306,7 @@ DATA_GROUP* DLSManager::dls_get(const std::string& text, uint8_t charset, int se
             (seg_text_len - 1);
 
     // prefix: charset / seg index
-    seg_data[1] = (first_seg ? charset : seg_index) << 4;
+    seg_data[1] = (first_seg ? (uint8_t) charset : seg_index) << 4;
 
     // character field
     memcpy(&seg_data[DLS_SEG_LEN_PREFIX], seg_text_start, seg_text_len);
@@ -324,7 +324,7 @@ DATA_GROUP* DLSManager::dls_get(const std::string& text, uint8_t charset, int se
 }
 
 
-void DLSManager::prepend_dl_dgs(PADPacketizer& pad_packetizer, const DL_STATE& dl_state, uint8_t charset) {
+void DLSManager::prepend_dl_dgs(const DL_STATE& dl_state, DABCharset charset) {
     // process all DL segments
     int seg_count = dls_count(dl_state.dl_text);
     std::vector<DATA_GROUP*> segs;
@@ -340,7 +340,7 @@ void DLSManager::prepend_dl_dgs(PADPacketizer& pad_packetizer, const DL_STATE& d
         segs.push_back(createDynamicLabelPlus(dl_state));
 
     // prepend to packetizer
-    pad_packetizer.AddDGs(segs, true);
+    pad_packetizer->AddDGs(segs, true);
 
 #ifdef DEBUG
     fprintf(stderr, "PAD length: %d\n", padlen);

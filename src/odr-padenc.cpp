@@ -51,10 +51,7 @@
 
 
 
-#define SLEEPDELAY_DEFAULT 10       // seconds
-
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
+static const int    SLEEPDELAY_DEFAULT = 10; // seconds
 
 static const size_t MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
 static const size_t MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
@@ -332,7 +329,7 @@ void usage(char* name)
                     " -e, --erase            Erase slides from DIRNAME once they have\n"
                     "                          been encoded.\n"
                     " -s, --sleep=DELAY      Wait DELAY seconds between each slide\n"
-                    "                          Default: " STR(SLEEPDELAY_DEFAULT) "\n"
+                    "                          Default: %d\n"
                     " -o, --output=FILENAME  Fifo to write PAD data into.\n"
                     "                          Default: /tmp/pad.fifo\n"
                     " -t, --dls=FILENAME     Fifo or file to read DLS text from.\n"
@@ -351,7 +348,7 @@ void usage(char* name)
                     "                          slides is skipped. Use this if you know what you are doing !\n"
                     "                          It is useful only when -d is used\n"
                     " -v, --verbose          Print more information to the console\n",
-                    PADPacketizer::ALLOWED_PADLEN.c_str()
+                    SLEEPDELAY_DEFAULT, PADPacketizer::ALLOWED_PADLEN.c_str()
            );
 }
 
@@ -366,7 +363,7 @@ int main(int argc, char *argv[])
     bool erase_after_tx = false;
     int  sleepdelay = SLEEPDELAY_DEFAULT;
     bool raw_slides = false;
-    int  charset = CHARSET_UTF8;
+    DABCharset charset = DABCharset::UTF8;
     bool raw_dls = false;
     bool remove_dls = false;
 
@@ -396,7 +393,7 @@ int main(int argc, char *argv[])
         ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:v", longopts, &index);
         switch (ch) {
             case 'c':
-                charset = atoi(optarg);
+                charset = (DABCharset) atoi(optarg);
                 break;
             case 'C':
                 raw_dls = true;
@@ -461,46 +458,39 @@ int main(int argc, char *argv[])
 
     const char* user_charset;
     switch (charset) {
-        case CHARSET_COMPLETE_EBU_LATIN:
+        case DABCharset::COMPLETE_EBU_LATIN:
             user_charset = "Complete EBU Latin";
             break;
-        case CHARSET_EBU_LATIN_CY_GR:
+        case DABCharset::EBU_LATIN_CY_GR:
             user_charset = "EBU Latin core, Cyrillic, Greek";
             break;
-        case CHARSET_EBU_LATIN_AR_HE_CY_GR:
+        case DABCharset::EBU_LATIN_AR_HE_CY_GR:
             user_charset = "EBU Latin core, Arabic, Hebrew, Cyrillic, Greek";
             break;
-        case CHARSET_ISO_LATIN_ALPHABET_2:
+        case DABCharset::ISO_LATIN_ALPHABET_2:
             user_charset = "ISO Latin Alphabet 2";
             break;
-        case CHARSET_UCS2_BE:
+        case DABCharset::UCS2_BE:
             user_charset = "UCS-2 BE";
             break;
-        case CHARSET_UTF8:
+        case DABCharset::UTF8:
             user_charset = "UTF-8";
             break;
         default:
-            user_charset = "Invalid";
-            charset = -1;
-            break;
+            fprintf(stderr, "ODR-PadEnc Error: Invalid charset!\n");
+            usage(argv[0]);
+            return 1;
     }
 
-    if (charset == -1) {
-        fprintf(stderr, "ODR-PadEnc Error: Invalid charset!\n");
-        usage(argv[0]);
-        return 1;
-    }
-    else {
-        fprintf(stderr, "ODR-PadEnc using charset %s (%d)\n",
-               user_charset, charset);
-    }
+    fprintf(stderr, "ODR-PadEnc using charset %s (%d)\n",
+           user_charset, charset);
 
     if (not raw_dls) {
         switch (charset) {
-        case CHARSET_COMPLETE_EBU_LATIN:
+        case DABCharset::COMPLETE_EBU_LATIN:
             // no conversion needed
             break;
-        case CHARSET_UTF8:
+        case DABCharset::UTF8:
             fprintf(stderr, "ODR-PadEnc converting DLS texts to Complete EBU Latin\n");
             break;
         default:
@@ -520,7 +510,7 @@ int main(int argc, char *argv[])
 #endif
 
     PADPacketizer pad_packetizer(padlen);
-    DLSManager dls_manager;
+    DLSManager dls_manager(&pad_packetizer);
 
     std::list<slide_metadata_t> slides_to_transmit;
     History slides_history(MAXHISTORYLEN);
@@ -569,7 +559,7 @@ int main(int argc, char *argv[])
             // if ATM no slides, transmit at least DLS
             if (slides_to_transmit.empty()) {
                 if (not dls_file.empty()) {
-                    dls_manager.writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+                    dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
                     pad_packetizer.WriteAllPADs(output_fd);
                 }
 
@@ -597,14 +587,14 @@ int main(int argc, char *argv[])
                     // while flushing, insert DLS after a certain PAD amout
                     while (pad_packetizer.QueueFilled()) {
                         if (not dls_file.empty())
-                            dls_manager.writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+                            dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
 
                         pad_packetizer.WriteAllPADs(output_fd, DLSManager::DLS_REPETITION_WHILE_SLS);
                     }
 
                     // after the slide, output a last DLS
                     if (not dls_file.empty())
-                        dls_manager.writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+                        dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
                     pad_packetizer.WriteAllPADs(output_fd);
 
                     sleep(sleepdelay);
@@ -614,7 +604,7 @@ int main(int argc, char *argv[])
             }
         } else { // only DLS
             // Always retransmit DLS, we want it to be updated frequently
-            dls_manager.writeDLS(pad_packetizer, dls_file, charset, raw_dls, remove_dls);
+            dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
             pad_packetizer.WriteAllPADs(output_fd);
 
             sleep(sleepdelay);
@@ -1064,7 +1054,7 @@ uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, con
 {
     // prepare ContentName
     uint8_t cntemp[10];     // = 1 + 8 + 1 = charset + name + terminator
-    cntemp[0] = 0x0 << 4;   // charset: 0 (Complete EBU Latin based) - doesn't really matter here
+    cntemp[0] = (uint8_t) DABCharset::COMPLETE_EBU_LATIN << 4;
     snprintf((char*) (cntemp + 1), sizeof(cntemp) - 1, "%04d.%s", fidx, jfif_not_png ? "jpg" : "png");
 
     // MOT header - content type: image, content subtype: JFIF / PNG
