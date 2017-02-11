@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string>
 #include <list>
+#include <vector>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -66,9 +67,10 @@ void usage(char* name)
                     "                          been encoded.\n"
                     " -s, --sleep=DELAY      Wait DELAY seconds between each slide\n"
                     "                          Default: %d\n"
-                    " -o, --output=FILENAME  Fifo to write PAD data into.\n"
+                    " -o, --output=FILENAME  FIFO to write PAD data into.\n"
                     "                          Default: /tmp/pad.fifo\n"
-                    " -t, --dls=FILENAME     Fifo or file to read DLS text from.\n"
+                    " -t, --dls=FILENAME     FIFO or file to read DLS text from.\n"
+                    "                          If specified more than once, use next file after DELAY seconds.\n"
                     " -p, --pad=LENGTH       Set the pad length.\n"
                     "                          Possible values: %s\n"
                     "                          Default: 58\n"
@@ -88,9 +90,18 @@ void usage(char* name)
            );
 }
 
-#define no_argument 0
-#define required_argument 1
-#define optional_argument 2
+
+std::string list_dls_files(std::vector<std::string> dls_files) {
+    std::string result = "";
+    for(std::string dls_file : dls_files) {
+        if(!result.empty())
+            result += "/";
+        result += "'" + dls_file + "'";
+    }
+    return result;
+}
+
+
 int main(int argc, char *argv[])
 {
     int ret;
@@ -105,7 +116,8 @@ int main(int argc, char *argv[])
 
     const char* sls_dir = NULL;
     const char* output = "/tmp/pad.fifo";
-    std::string dls_file;
+    std::vector<std::string> dls_files;
+    int curr_dls_file = 0;
 
     const struct option longopts[] = {
         {"charset",    required_argument,  0, 'c'},
@@ -150,7 +162,7 @@ int main(int argc, char *argv[])
                 sleepdelay = atoi(optarg);
                 break;
             case 't':
-                dls_file = optarg;
+                dls_files.push_back(optarg);
                 break;
             case 'p':
                 padlen = atoi(optarg);
@@ -174,17 +186,17 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    if (sls_dir && not dls_file.empty()) {
-        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from '%s' to '%s'\n",
-                sls_dir, dls_file.c_str(), output);
+    if (sls_dir && not dls_files.empty()) {
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from %s to '%s'\n",
+                sls_dir, list_dls_files(dls_files).c_str(), output);
     }
     else if (sls_dir) {
         fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' to '%s'. No DLS.\n",
                 sls_dir, output);
     }
-    else if (not dls_file.empty()) {
-        fprintf(stderr, "ODR-PadEnc encoding DLS from '%s' to '%s'. No Slideshow.\n",
-                dls_file.c_str(), output);
+    else if (not dls_files.empty()) {
+        fprintf(stderr, "ODR-PadEnc encoding DLS from %s to '%s'. No Slideshow.\n",
+                list_dls_files(dls_files).c_str(), output);
     }
     else {
         fprintf(stderr, "ODR-PadEnc Error: No DLS nor slideshow to encode !\n");
@@ -295,9 +307,11 @@ int main(int argc, char *argv[])
 
             // if ATM no slides, transmit at least DLS
             if (slides_to_transmit.empty()) {
-                if (not dls_file.empty()) {
-                    dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
+                if (not dls_files.empty()) {
+                    dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
                     pad_packetizer.WriteAllPADs(output_fd);
+
+                    curr_dls_file = (curr_dls_file + 1) % dls_files.size();
                 }
 
                 sleep(sleepdelay);
@@ -323,17 +337,18 @@ int main(int argc, char *argv[])
 
                     // while flushing, insert DLS after a certain PAD amout
                     while (pad_packetizer.QueueFilled()) {
-                        if (not dls_file.empty())
-                            dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
+                        if (not dls_files.empty())
+                            dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
 
                         pad_packetizer.WriteAllPADs(output_fd, DLSManager::DLS_REPETITION_WHILE_SLS);
                     }
 
                     // after the slide, output a last DLS
-                    if (not dls_file.empty())
-                        dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
+                    if (not dls_files.empty())
+                        dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
                     pad_packetizer.WriteAllPADs(output_fd);
 
+                    curr_dls_file = (curr_dls_file + 1) % dls_files.size();
                     sleep(sleepdelay);
                 }
 
@@ -341,9 +356,10 @@ int main(int argc, char *argv[])
             }
         } else { // only DLS
             // Always retransmit DLS, we want it to be updated frequently
-            dls_manager.writeDLS(dls_file, charset, raw_dls, remove_dls);
+            dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
             pad_packetizer.WriteAllPADs(output_fd);
 
+            curr_dls_file = (curr_dls_file + 1) % dls_files.size();
             sleep(sleepdelay);
         }
     }
