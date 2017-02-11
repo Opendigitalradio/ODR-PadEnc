@@ -384,7 +384,7 @@ int SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
             fprintf(stderr, "ODR-PadEnc Warning: Unable to detect image format of '%s'\n",
                     fname.c_str());
 
-            fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d).  Original size: %zu x %zu.\n",
+            fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d).  Original size: %zu x %zu.\n",
                     fname.c_str(), fidx, width, height);
         }
 
@@ -430,7 +430,7 @@ int SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
         rewind(pFile);
 
         if (verbose) {
-            fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d). Raw file: %zu Bytes\n",
+            fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d). Raw file: %zu Bytes\n",
                     fname.c_str(), fidx, blobsize);
         }
 
