@@ -286,9 +286,9 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 #endif
 
 
-int SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
+bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
 {
-    int ret = 0;
+    bool result = false;
     int nseg, lastseglen, i, last, curseglen;
 #if HAVE_MAGICKWAND
     MagickWand *m_wand = NULL;
@@ -509,7 +509,7 @@ int SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
             pad_packetizer->AddDG(mscdg, false);
         }
 
-        ret = 1;
+        result = true;
     }
 
 encodefile_out:
@@ -522,7 +522,7 @@ encodefile_out:
     if (blob) {
         free(blob);
     }
-    return ret;
+    return result;
 }
 
 

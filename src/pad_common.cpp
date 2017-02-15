@@ -311,3 +311,7 @@ DATA_GROUP* PADPacketizer::CreateDataGroupLengthIndicator(size_t len) {
 
     return dg;
 }
+
+bool PADPacketizer::CheckPADLen(size_t len) {
+    return len == PADPacketizer::SHORT_PAD || (len >= PADPacketizer::VARSIZE_PAD_MIN && len <= PADPacketizer::VARSIZE_PAD_MAX);
+}

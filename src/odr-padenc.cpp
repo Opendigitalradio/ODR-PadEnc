@@ -20,7 +20,7 @@
 */
 /*!
     \file odr-padenc.cpp
-    \brief Generete PAD data for MOT Slideshow and DLS
+    \brief Generate PAD data for MOT Slideshow and DLS
 
     \author Sergio Sagliocco <sergio.sagliocco@csp.it>
     \author Matthias P. Braendli <matthias@mpb.li>
@@ -43,12 +43,11 @@
 #include "sls.h"
 
 
-static const int    SLEEPDELAY_DEFAULT = 10; // seconds
+static const int SLEEPDELAY_DEFAULT = 10; // seconds
 
 
 
-void usage(char* name)
-{
+static void usage(const char* name) {
     fprintf(stderr, "DAB PAD encoder %s for MOT Slideshow and DLS\n\n"
                     "By CSP Innovazione nelle ICT s.c.a r.l. (http://rd.csp.it/) and\n"
                     "Opendigitalradio.org\n\n"
@@ -91,7 +90,7 @@ void usage(char* name)
 }
 
 
-std::string list_dls_files(std::vector<std::string> dls_files) {
+static std::string list_dls_files(std::vector<std::string> dls_files) {
     std::string result = "";
     for(std::string dls_file : dls_files) {
         if(!result.empty())
@@ -102,17 +101,12 @@ std::string list_dls_files(std::vector<std::string> dls_files) {
 }
 
 
-int main(int argc, char *argv[])
-{
-    int ret;
-    struct dirent *pDirent;
+int main(int argc, char *argv[]) {
     size_t padlen = 58;
     bool erase_after_tx = false;
     int  sleepdelay = SLEEPDELAY_DEFAULT;
     bool raw_slides = false;
-    DABCharset charset = DABCharset::UTF8;
-    bool raw_dls = false;
-    bool remove_dls = false;
+    DL_PARAMS dl_params;
 
     const char* sls_dir = NULL;
     const char* output = "/tmp/pad.fifo";
@@ -135,19 +129,17 @@ int main(int argc, char *argv[])
         {0,0,0,0},
     };
 
-    int ch=0;
-    int index;
-    while(ch != -1) {
-        ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:v", longopts, &index);
+    int ch;
+    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:v", longopts, NULL)) != -1) {
         switch (ch) {
             case 'c':
-                charset = (DABCharset) atoi(optarg);
+                dl_params.charset = (DABCharset) atoi(optarg);
                 break;
             case 'C':
-                raw_dls = true;
+                dl_params.raw_dls = true;
                 break;
             case 'r':
-                remove_dls = true;
+                dl_params.remove_dls = true;
                 break;
             case 'd':
                 sls_dir = optarg;
@@ -161,7 +153,7 @@ int main(int argc, char *argv[])
             case 's':
                 sleepdelay = atoi(optarg);
                 break;
-            case 't':
+            case 't':   // can be used more than once!
                 dls_files.push_back(optarg);
                 break;
             case 'p':
@@ -180,8 +172,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (padlen != PADPacketizer::SHORT_PAD && (padlen < PADPacketizer::VARSIZE_PAD_MIN || padlen > PADPacketizer::VARSIZE_PAD_MAX)) {
-        fprintf(stderr, "ODR-PadEnc Error: pad length %zu invalid: Possible values: %s\n",
+    if (!PADPacketizer::CheckPADLen(padlen)) {
+        fprintf(stderr, "ODR-PadEnc Error: PAD length %zu invalid: Possible values: %s\n",
                 padlen, PADPacketizer::ALLOWED_PADLEN.c_str());
         return 2;
     }
@@ -199,13 +191,13 @@ int main(int argc, char *argv[])
                 list_dls_files(dls_files).c_str(), output);
     }
     else {
-        fprintf(stderr, "ODR-PadEnc Error: No DLS nor slideshow to encode !\n");
+        fprintf(stderr, "ODR-PadEnc Error: Neither DLS nor Slideshow to encode !\n");
         usage(argv[0]);
         return 1;
     }
 
     const char* user_charset;
-    switch (charset) {
+    switch (dl_params.charset) {
         case DABCharset::COMPLETE_EBU_LATIN:
             user_charset = "Complete EBU Latin";
             break;
@@ -231,10 +223,10 @@ int main(int argc, char *argv[])
     }
 
     fprintf(stderr, "ODR-PadEnc using charset %s (%d)\n",
-           user_charset, charset);
+           user_charset, dl_params.charset);
 
-    if (not raw_dls) {
-        switch (charset) {
+    if (not dl_params.raw_dls) {
+        switch (dl_params.charset) {
         case DABCharset::COMPLETE_EBU_LATIN:
             // no conversion needed
             break;
@@ -273,6 +265,7 @@ int main(int argc, char *argv[])
             }
 
             // Add new slides to transmit to list
+            struct dirent *pDirent;
             while ((pDirent = readdir(pDir)) != NULL) {
                 std::string slide = pDirent->d_name;
 
@@ -308,7 +301,7 @@ int main(int argc, char *argv[])
             // if ATM no slides, transmit at least DLS
             if (slides_to_transmit.empty()) {
                 if (not dls_files.empty()) {
-                    dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
+                    dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
                     pad_packetizer.WriteAllPADs(output_fd);
 
                     curr_dls_file = (curr_dls_file + 1) % dls_files.size();
@@ -324,8 +317,7 @@ int main(int argc, char *argv[])
                         it != slides_to_transmit.cend();
                         ++it) {
 
-                    ret = sls_manager.encodeFile(it->filepath, it->fidx, raw_slides);
-                    if (ret != 1)
+                    if (!sls_manager.encodeFile(it->filepath, it->fidx, raw_slides))
                         fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", it->filepath.c_str());
 
                     if (erase_after_tx) {
@@ -338,14 +330,14 @@ int main(int argc, char *argv[])
                     // while flushing, insert DLS after a certain PAD amout
                     while (pad_packetizer.QueueFilled()) {
                         if (not dls_files.empty())
-                            dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
+                            dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
 
                         pad_packetizer.WriteAllPADs(output_fd, DLSManager::DLS_REPETITION_WHILE_SLS);
                     }
 
                     // after the slide, output a last DLS
                     if (not dls_files.empty())
-                        dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
+                        dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
                     pad_packetizer.WriteAllPADs(output_fd);
 
                     curr_dls_file = (curr_dls_file + 1) % dls_files.size();
@@ -356,7 +348,7 @@ int main(int argc, char *argv[])
             }
         } else { // only DLS
             // Always retransmit DLS, we want it to be updated frequently
-            dls_manager.writeDLS(dls_files[curr_dls_file], charset, raw_dls, remove_dls);
+            dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
             pad_packetizer.WriteAllPADs(output_fd);
 
             curr_dls_file = (curr_dls_file + 1) % dls_files.size();

@@ -225,7 +225,7 @@ public:
 
     SLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
-    int encodeFile(const std::string& fname, int fidx, bool raw_slides);
+    bool encodeFile(const std::string& fname, int fidx, bool raw_slides);
 };
 
 #endif /* SLS_H_ */

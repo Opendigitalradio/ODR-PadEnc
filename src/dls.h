@@ -47,6 +47,16 @@ enum {
 };
 
 
+// --- DL_PARAMS -----------------------------------------------------------------
+struct DL_PARAMS {
+    DABCharset charset;
+    bool raw_dls;
+    bool remove_dls;
+
+    DL_PARAMS() : charset(DABCharset::UTF8), raw_dls(false), remove_dls(false) {}
+};
+
+
 // --- DL_PLUS_TAG -----------------------------------------------------------------
 struct DL_PLUS_TAG {
     int content_type;
@@ -140,7 +150,7 @@ public:
     static const std::string DL_PARAMS_CLOSE;
 
     DLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
-    void writeDLS(const std::string& dls_file, DABCharset charset, bool raw_dls, bool remove_dls);
+    void writeDLS(const std::string& dls_file, const DL_PARAMS& dl_params);
 };
 
 #endif /* DLS_H_ */

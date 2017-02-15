@@ -73,6 +73,12 @@ struct DATA_GROUP {
 // --- PADPacketizer -----------------------------------------------------------------
 class PADPacketizer {
 private:
+    static const size_t SUBFIELD_LENS[];
+    static const size_t FPAD_LEN;
+    static const size_t SHORT_PAD;
+    static const size_t VARSIZE_PAD_MIN;
+    static const size_t VARSIZE_PAD_MAX;
+
     const size_t xpad_size_max;
     const bool short_xpad;
     const size_t max_cis;
@@ -105,11 +111,6 @@ private:
     void ResetPAD();
     pad_t* FlushPAD();
 public:
-    static const size_t SUBFIELD_LENS[];
-    static const size_t FPAD_LEN;
-    static const size_t SHORT_PAD;
-    static const size_t VARSIZE_PAD_MIN;
-    static const size_t VARSIZE_PAD_MAX;
     static const std::string ALLOWED_PADLEN;
 
     PADPacketizer(size_t pad_size);
@@ -125,6 +126,7 @@ public:
     void WriteAllPADs(int output_fd, int limit = -1);
 
     static DATA_GROUP* CreateDataGroupLengthIndicator(size_t len);
+    static bool CheckPADLen(size_t len);
 };
 
 #endif /* PAD_COMMON_H_ */

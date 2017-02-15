@@ -186,16 +186,15 @@ void DLSManager::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state)
 }
 
 
-void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool raw_dls, bool remove_dls) {
+void DLSManager::writeDLS(const std::string& dls_file, const DL_PARAMS& dl_params) {
+    DL_STATE dl_state;
+    std::vector<std::string> dls_lines;
+
     std::ifstream dls_fstream(dls_file);
     if (!dls_fstream.is_open()) {
         std::cerr << "Could not open " << dls_file << std::endl;
         return;
     }
-
-    DL_STATE dl_state;
-
-    std::vector<std::string> dls_lines;
 
     std::string line;
     // Read and convert lines one by one because the converter doesn't understand
@@ -206,7 +205,7 @@ void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool 
         if (line == DL_PARAMS_OPEN) {
             parse_dl_params(dls_fstream, dl_state);
         } else {
-            if (not raw_dls && charset == DABCharset::UTF8) {
+            if (not dl_params.raw_dls && dl_params.charset == DABCharset::UTF8) {
                 dls_lines.push_back(charset_converter.convert(line));
             }
             else {
@@ -219,14 +218,14 @@ void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool 
     std::stringstream ss;
     for (size_t i = 0; i < dls_lines.size(); i++) {
         if (i != 0) {
-            if (charset == DABCharset::UCS2_BE)
+            if (dl_params.charset == DABCharset::UCS2_BE)
                 ss << '\0' << '\n';
             else
                 ss << '\n';
         }
 
         // UCS-2 BE: if from file the first byte of \0\n remains, remove it
-        if (charset == DABCharset::UCS2_BE && dls_lines[i].size() % 2) {
+        if (dl_params.charset == DABCharset::UCS2_BE && dls_lines[i].size() % 2) {
             dls_lines[i].resize(dls_lines[i].size() - 1);
         }
 
@@ -241,9 +240,6 @@ void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool 
     // if DL Plus enabled, but no DL Plus tags were added, add the required DUMMY tag
     if (dl_state.dl_plus_enabled && dl_state.dl_plus_tags.empty())
         dl_state.dl_plus_tags.push_back(DL_PLUS_TAG());
-
-    if (not raw_dls)
-        charset = DABCharset::COMPLETE_EBU_LATIN;
 
 
     // toggle the toggle bit only on new DL state
@@ -267,7 +263,7 @@ void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool 
 
     DATA_GROUP *remove_label_dg = NULL;
     if (dl_state_is_new) {
-        if (remove_dls)
+        if (dl_params.remove_dls)
             remove_label_dg = createDynamicLabelCommand(DLS_CMD_REMOVE_LABEL);
 
         dls_toggle = !dls_toggle;   // indicate changed text
@@ -275,7 +271,7 @@ void DLSManager::writeDLS(const std::string& dls_file, DABCharset charset, bool 
         dl_state_prev = dl_state;
     }
 
-    prepend_dl_dgs(dl_state, charset);
+    prepend_dl_dgs(dl_state, dl_params.raw_dls ? dl_params.charset : DABCharset::COMPLETE_EBU_LATIN);
     if (remove_label_dg)
         pad_packetizer->AddDG(remove_label_dg, true);
 }
