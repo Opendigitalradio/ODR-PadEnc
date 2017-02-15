@@ -100,6 +100,49 @@ static std::string list_dls_files(std::vector<std::string> dls_files) {
     return result;
 }
 
+bool read_slides_dir(const char* dir, History& history, std::list<slide_metadata_t>& slides) {
+    DIR *pDir = opendir(dir);
+    if (pDir == NULL) {
+        fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", dir);
+        return false;
+    }
+
+    // Add new slides to transmit to list
+    struct dirent *pDirent;
+    while ((pDirent = readdir(pDir)) != NULL) {
+        std::string slide = pDirent->d_name;
+
+        // skip dirs beginning with '.'
+        if(slide[0] == '.')
+            continue;
+
+        // skip slide params files
+        if(slide.length() >= SLSManager::SLS_PARAMS_SUFFIX.length() &&
+                slide.compare(slide.length() - SLSManager::SLS_PARAMS_SUFFIX.length(), SLSManager::SLS_PARAMS_SUFFIX.length(), SLSManager::SLS_PARAMS_SUFFIX) == 0)
+            continue;
+
+        // add slide
+        char imagepath[256];
+        sprintf(imagepath, "%s/%s", dir, slide.c_str());
+
+        slide_metadata_t md;
+        md.filepath = imagepath;
+        md.fidx     = history.get_fidx(imagepath);
+        slides.push_back(md);
+
+        if (verbose)
+            fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath, md.fidx);
+    }
+
+    closedir(pDir);
+
+#ifdef DEBUG
+    slides_history.disp_database();
+#endif
+
+    return true;
+}
+
 
 int main(int argc, char *argv[]) {
     size_t padlen = 58;
@@ -257,103 +300,51 @@ int main(int argc, char *argv[]) {
     History slides_history(History::MAXHISTORYLEN);
 
     while(1) {
-        if (sls_dir) { // slide + possibly DLS
-            DIR *pDir = opendir(sls_dir);
-            if (pDir == NULL) {
-                fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", sls_dir);
+        // try to read slides dir (if present)
+        if (sls_dir && slides_to_transmit.empty()) {
+            if(!read_slides_dir(sls_dir, slides_history, slides_to_transmit))
                 return 1;
-            }
 
-            // Add new slides to transmit to list
-            struct dirent *pDirent;
-            while ((pDirent = readdir(pDir)) != NULL) {
-                std::string slide = pDirent->d_name;
-
-                // skip dirs beginning with '.'
-                if(slide[0] == '.')
-                    continue;
-
-                // skip slide params files
-                if(slide.length() >= SLSManager::SLS_PARAMS_SUFFIX.length() &&
-                        slide.compare(slide.length() - SLSManager::SLS_PARAMS_SUFFIX.length(), SLSManager::SLS_PARAMS_SUFFIX.length(), SLSManager::SLS_PARAMS_SUFFIX) == 0)
-                    continue;
-
-                // add slide
-                char imagepath[256];
-                sprintf(imagepath, "%s/%s", sls_dir, slide.c_str());
-
-                slide_metadata_t md;
-                md.filepath = imagepath;
-                md.fidx     = slides_history.get_fidx(imagepath);
-                slides_to_transmit.push_back(md);
-
-                if (verbose) {
-                    fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath, md.fidx);
-                }
-            }
-
-            closedir(pDir);
-
-#ifdef DEBUG
-            slides_history.disp_database();
-#endif
-
-            // if ATM no slides, transmit at least DLS
-            if (slides_to_transmit.empty()) {
-                if (not dls_files.empty()) {
-                    dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
-                    pad_packetizer.WriteAllPADs(output_fd);
-
-                    curr_dls_file = (curr_dls_file + 1) % dls_files.size();
-                }
-
-                sleep(sleepdelay);
-            } else {
-                // Sort the list in fidx order
-                slides_to_transmit.sort();
-
-                // Encode the slides
-                for (std::list<slide_metadata_t>::const_iterator it = slides_to_transmit.cbegin();
-                        it != slides_to_transmit.cend();
-                        ++it) {
-
-                    if (!sls_manager.encodeFile(it->filepath, it->fidx, raw_slides))
-                        fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", it->filepath.c_str());
-
-                    if (erase_after_tx) {
-                        if (unlink(it->filepath.c_str()) == -1) {
-                            fprintf(stderr, "ODR-PadEnc Error: erasing file '%s' failed: ", it->filepath.c_str());
-                            perror("");
-                        }
-                    }
-
-                    // while flushing, insert DLS after a certain PAD amout
-                    while (pad_packetizer.QueueFilled()) {
-                        if (not dls_files.empty())
-                            dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
-
-                        pad_packetizer.WriteAllPADs(output_fd, DLSManager::DLS_REPETITION_WHILE_SLS);
-                    }
-
-                    // after the slide, output a last DLS
-                    if (not dls_files.empty())
-                        dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
-                    pad_packetizer.WriteAllPADs(output_fd);
-
-                    curr_dls_file = (curr_dls_file + 1) % dls_files.size();
-                    sleep(sleepdelay);
-                }
-
-                slides_to_transmit.resize(0);
-            }
-        } else { // only DLS
-            // Always retransmit DLS, we want it to be updated frequently
-            dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
-            pad_packetizer.WriteAllPADs(output_fd);
-
-            curr_dls_file = (curr_dls_file + 1) % dls_files.size();
-            sleep(sleepdelay);
+            // sort the list in fidx order
+            slides_to_transmit.sort();
         }
+
+        // if slides available, encode the first one
+        if (!slides_to_transmit.empty()) {
+            slide_metadata_t slide = slides_to_transmit.front();
+            slides_to_transmit.pop_front();
+
+            if (!sls_manager.encodeFile(slide.filepath, slide.fidx, raw_slides))
+                fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());
+
+            if (erase_after_tx) {
+                if (unlink(slide.filepath.c_str()) == -1) {
+                    fprintf(stderr, "ODR-PadEnc Error: erasing file '%s' failed: ", slide.filepath.c_str());
+                    perror("");
+                }
+            }
+
+            // while flushing, insert DLS (if present) after a certain PAD amout
+            while (pad_packetizer.QueueFilled()) {
+                if (not dls_files.empty())
+                    dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
+
+                pad_packetizer.WriteAllPADs(output_fd, DLSManager::DLS_REPETITION_WHILE_SLS);
+            }
+        }
+
+        // encode (a last) DLS (if present)
+        if (not dls_files.empty()) {
+            dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
+
+            // switch to next DLS file
+            curr_dls_file = (curr_dls_file + 1) % dls_files.size();
+        }
+
+        // flush all remaining PADs
+        pad_packetizer.WriteAllPADs(output_fd);
+
+        sleep(sleepdelay);
     }
 
     return 1;
