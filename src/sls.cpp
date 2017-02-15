@@ -357,7 +357,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
                 orig_is_jpeg = true;
 
                 if (verbose) {
-                    fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d)."
+                    fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d)."
                             " Original size: %zu x %zu. (%s, q=%zu, progr=%s)\n",
                             fname.c_str(), fidx, width, height, orig_format, orig_quality, jpeg_progr ? "y" : "n");
                 }
@@ -367,13 +367,13 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
                 jfif_not_png = false;
 
                 if (verbose) {
-                    fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d)."
+                    fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d)."
                             " Original size: %zu x %zu. (%s)\n",
                             fname.c_str(), fidx, width, height, orig_format);
                 }
             }
             else if (verbose) {
-                fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d)."
+                fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d)."
                         " Original size: %zu x %zu. (%s)\n",
                         fname.c_str(), fidx, width, height, orig_format);
             }
@@ -394,7 +394,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
 
             if (blobsize <= MAXSLIDESIZE) {
                 if (verbose) {
-                    fprintf(stderr, "ODR-PadEnc image: '%s' (id=%d).  No resize needed: %zu Bytes\n",
+                    fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d).  No resize needed: %zu Bytes\n",
                             fname.c_str(), fidx, blobsize);
                 }
                 resize_required = false;
