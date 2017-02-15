@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string>
 #include <list>
+#include <thread>
 #include <vector>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -304,6 +305,8 @@ int main(int argc, char *argv[]) {
     std::list<slide_metadata_t> slides_to_transmit;
     History slides_history(History::MAXHISTORYLEN);
 
+    std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
+
     while(1) {
         // try to read slides dir (if present)
         if (sls_dir && slides_to_transmit.empty()) {
@@ -349,7 +352,9 @@ int main(int argc, char *argv[]) {
         // flush all remaining PADs
         pad_packetizer.WriteAllPADs(output_fd);
 
-        sleep(sleepdelay);
+        // sleep until next run
+        next_run += std::chrono::seconds(sleepdelay);
+        std::this_thread::sleep_until(next_run);
     }
 
     return 1;
