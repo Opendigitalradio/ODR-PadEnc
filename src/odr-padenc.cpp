@@ -100,41 +100,46 @@ static std::string list_dls_files(std::vector<std::string> dls_files) {
     return result;
 }
 
-bool read_slides_dir(const char* dir, History& history, std::list<slide_metadata_t>& slides) {
-    DIR *pDir = opendir(dir);
-    if (pDir == NULL) {
-        fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", dir);
+
+static int filter_slides(const struct dirent* file) {
+    std::string name = file->d_name;
+
+    // skip '.'/'..' dirs
+    if(name == "." || name == "..")
+        return 0;
+
+    // skip slide params files
+    if(name.length() >= SLSManager::SLS_PARAMS_SUFFIX.length() &&
+            name.substr(name.length() - SLSManager::SLS_PARAMS_SUFFIX.length()) == SLSManager::SLS_PARAMS_SUFFIX)
+        return 0;
+
+    return 1;
+}
+
+
+static bool read_slides_dir(const std::string& dir, History& history, std::list<slide_metadata_t>& slides) {
+    struct dirent** dir_entries;
+    int dir_count = scandir(dir.c_str(), &dir_entries, filter_slides, alphasort);
+    if(dir_count < 0) {
+        fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", dir.c_str());
         return false;
     }
 
-    // Add new slides to transmit to list
-    struct dirent *pDirent;
-    while ((pDirent = readdir(pDir)) != NULL) {
-        std::string slide = pDirent->d_name;
-
-        // skip dirs beginning with '.'
-        if(slide[0] == '.')
-            continue;
-
-        // skip slide params files
-        if(slide.length() >= SLSManager::SLS_PARAMS_SUFFIX.length() &&
-                slide.compare(slide.length() - SLSManager::SLS_PARAMS_SUFFIX.length(), SLSManager::SLS_PARAMS_SUFFIX.length(), SLSManager::SLS_PARAMS_SUFFIX) == 0)
-            continue;
-
-        // add slide
-        char imagepath[256];
-        sprintf(imagepath, "%s/%s", dir, slide.c_str());
+    // add new slides to transmit to list
+    for(int i = 0; i < dir_count; i++) {
+        std::string imagepath = dir + "/" + std::string(dir_entries[i]->d_name);
+        free(dir_entries[i]);
 
         slide_metadata_t md;
         md.filepath = imagepath;
-        md.fidx     = history.get_fidx(imagepath);
+        md.fidx     = history.get_fidx(imagepath.c_str());
         slides.push_back(md);
 
         if (verbose)
-            fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath, md.fidx);
+            fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath.c_str(), md.fidx);
     }
 
-    closedir(pDir);
+    free(dir_entries);
 
 #ifdef DEBUG
     slides_history.disp_database();
