@@ -128,6 +128,12 @@ struct DL_STATE {
 // --- DLSManager -----------------------------------------------------------------
 class DLSManager {
 private:
+    static const size_t MAXDLS;
+    static const size_t DLS_SEG_LEN_PREFIX;
+    static const size_t DLS_SEG_LEN_CHAR_MAX;
+    static const std::string DL_PARAMS_OPEN;
+    static const std::string DL_PARAMS_CLOSE;
+
     DATA_GROUP* createDynamicLabelCommand(uint8_t command);
     DATA_GROUP* createDynamicLabelPlus(const DL_STATE& dl_state);
     bool parse_dl_param_bool(const std::string &key, const std::string &value, bool &target);
@@ -142,13 +148,6 @@ private:
     bool dls_toggle;
     DL_STATE dl_state_prev;
 public:
-    static const size_t MAXDLS;
-    static const size_t DLS_SEG_LEN_PREFIX;
-    static const size_t DLS_SEG_LEN_CHAR_MAX;
-    static const int DLS_REPETITION_WHILE_SLS;
-    static const std::string DL_PARAMS_OPEN;
-    static const std::string DL_PARAMS_CLOSE;
-
     DLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
     void writeDLS(const std::string& dls_file, const DL_PARAMS& dl_params);
 };

@@ -45,7 +45,7 @@
 
 
 static const int SLEEPDELAY_DEFAULT = 10; // seconds
-
+static const int DLS_REPETITION_WHILE_SLS = 50;
 
 
 static void usage(const char* name) {
@@ -110,8 +110,7 @@ static int filter_slides(const struct dirent* file) {
         return 0;
 
     // skip slide params files
-    if(name.length() >= SLSManager::SLS_PARAMS_SUFFIX.length() &&
-            name.substr(name.length() - SLSManager::SLS_PARAMS_SUFFIX.length()) == SLSManager::SLS_PARAMS_SUFFIX)
+    if(SLSManager::isSlideParamFileFilename(name))
         return 0;
 
     return 1;
@@ -303,7 +302,7 @@ int main(int argc, char *argv[]) {
     SLSManager sls_manager(&pad_packetizer);
 
     std::list<slide_metadata_t> slides_to_transmit;
-    History slides_history(History::MAXHISTORYLEN);
+    History slides_history;
 
     std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
 
@@ -337,7 +336,7 @@ int main(int argc, char *argv[]) {
                 if (not dls_files.empty())
                     dls_manager.writeDLS(dls_files[curr_dls_file], dl_params);
 
-                pad_packetizer.WriteAllPADs(output_fd, DLSManager::DLS_REPETITION_WHILE_SLS);
+                pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
             }
         }
 

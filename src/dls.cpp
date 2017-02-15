@@ -34,7 +34,6 @@
 const size_t DLSManager::MAXDLS = 128; // chars
 const size_t DLSManager::DLS_SEG_LEN_PREFIX = 2;
 const size_t DLSManager::DLS_SEG_LEN_CHAR_MAX = 16;
-const int DLSManager::DLS_REPETITION_WHILE_SLS = 50;
 const std::string DLSManager::DL_PARAMS_OPEN  = "##### parameters { #####";
 const std::string DLSManager::DL_PARAMS_CLOSE = "##### parameters } #####";
 

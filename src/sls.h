@@ -150,8 +150,7 @@ struct fingerprint_t {
  */
 class History {
     public:
-        static const size_t MAXHISTORYLEN;
-
+        History() : History(MAXHISTORYLEN) {}
         History(size_t hist_size) :
             m_hist_size(hist_size),
             m_last_given_fidx(0) {}
@@ -160,6 +159,9 @@ class History {
         int get_fidx(const char* filepath);
 
     private:
+        static const size_t MAXHISTORYLEN;
+        static const int    MAXSLIDEID;
+
         std::deque<fingerprint_t> m_database;
 
         size_t m_hist_size;
@@ -199,6 +201,11 @@ public:
 // --- SLSManager -----------------------------------------------------------------
 class SLSManager {
 private:
+    static const size_t MAXSEGLEN;
+    static const size_t MAXSLIDESIZE;
+    static const int    MINQUALITY;
+    static const std::string SLS_PARAMS_SUFFIX;
+
     void warnOnSmallerImage(size_t height, size_t width, const std::string& fname);
 #if HAVE_MAGICKWAND
     size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png);
@@ -217,15 +224,10 @@ private:
     int cindex_header;
     int cindex_body;
 public:
-    static const size_t MAXSEGLEN;
-    static const size_t MAXSLIDESIZE;
-    static const int    MAXSLIDEID;
-    static const int    MINQUALITY;
-    static const std::string SLS_PARAMS_SUFFIX;
-
     SLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
     bool encodeFile(const std::string& fname, int fidx, bool raw_slides);
+    static bool isSlideParamFileFilename(const std::string& filename);
 };
 
 #endif /* SLS_H_ */

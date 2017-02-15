@@ -32,7 +32,7 @@
 
 // --- History -----------------------------------------------------------------
 const size_t History::MAXHISTORYLEN   =    50; // How many slides to keep in history
-
+const int    History::MAXSLIDEID      =  9999; // Roll-over value for fidx
 
 int History::find(const fingerprint_t& fp) const
 {
@@ -88,7 +88,7 @@ int History::get_fidx(const char* filepath)
         idx = m_last_given_fidx++;
         fp.fidx = idx;
 
-        if (m_last_given_fidx > SLSManager::MAXSLIDEID) {
+        if (m_last_given_fidx > MAXSLIDEID) {
             m_last_given_fidx = 0;
         }
 
@@ -192,7 +192,6 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 // --- SLSManager -----------------------------------------------------------------
 const size_t SLSManager::MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
 const size_t SLSManager::MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
-const int    SLSManager::MAXSLIDEID      =  9999; // Roll-over value for fidx
 const int    SLSManager::MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
 const std::string SLSManager::SLS_PARAMS_SUFFIX = ".sls_params";
 
@@ -697,4 +696,9 @@ DATA_GROUP* SLSManager::packMscDG(MSCDG* msc)
     dg->AppendCRC();
 
     return dg;
+}
+
+bool SLSManager::isSlideParamFileFilename(const std::string& filename) {
+    return filename.length() >= SLS_PARAMS_SUFFIX.length() &&
+           filename.substr(filename.length() - SLS_PARAMS_SUFFIX.length()) == SLS_PARAMS_SUFFIX;
 }
