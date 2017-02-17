@@ -232,8 +232,10 @@ void DLSManager::writeDLS(const std::string& dls_file, const DL_PARAMS& dl_param
     }
 
     dl_state.dl_text = ss.str();
-    if (dl_state.dl_text.size() > MAXDLS)
+    if (dl_state.dl_text.size() > MAXDLS) {
+        fprintf(stderr, "ODR-PadEnc Warning: oversized DLS text (%zu chars) had to be shortened\n", dl_state.dl_text.size());
         dl_state.dl_text.resize(MAXDLS);
+    }
 
 
     // if DL Plus enabled, but no DL Plus tags were added, add the required DUMMY tag
