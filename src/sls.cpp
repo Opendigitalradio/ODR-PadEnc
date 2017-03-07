@@ -246,7 +246,7 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
     blob_jpg = NULL;
     int quality_jpg = 100;
     do {
-        free(blob_jpg);
+        MagickRelinquishMemory(blob_jpg);
         quality_jpg -= 5;
 
         MagickSetImageCompressionQuality(m_wand, quality_jpg);
@@ -258,8 +258,8 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
     if (blobsize_png > MAXSLIDESIZE && blobsize_jpg > MAXSLIDESIZE) {
         fprintf(stderr, "ODR-PadEnc: Image Size too large after compression: %zu bytes (PNG), %zu bytes (JPEG)\n",
                 blobsize_png, blobsize_jpg);
-        free(blob_png);
-        free(blob_jpg);
+        MagickRelinquishMemory(blob_png);
+        MagickRelinquishMemory(blob_jpg);
         return 0;
     }
 
@@ -278,7 +278,7 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
     // warn if resized image smaller than default dimension
     warnOnSmallerImage(height, width, fname);
 
-    free(*jfif_not_png ? blob_png : blob_jpg);
+    MagickRelinquishMemory(*jfif_not_png ? blob_png : blob_jpg);
     *blob = *jfif_not_png ? blob_jpg : blob_png;
     return *jfif_not_png ? blobsize_jpg : blobsize_png;
 }
@@ -515,15 +515,22 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
     }
 
 encodefile_out:
+    if (blob) {
+        if(raw_slides) {
+            free(blob);
+        } else {
+#if HAVE_MAGICKWAND
+            MagickRelinquishMemory(blob);
+#endif
+        }
+    }
+
 #if HAVE_MAGICKWAND
     if (m_wand) {
         m_wand = DestroyMagickWand(m_wand);
     }
 #endif
 
-    if (blob) {
-        free(blob);
-    }
     return result;
 }
 
