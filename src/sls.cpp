@@ -398,7 +398,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
                 }
                 resize_required = false;
             } else {
-                free(blob);
+                MagickRelinquishMemory(blob);
                 blob = NULL;
             }
         }
