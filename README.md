@@ -22,7 +22,7 @@ How to build
 Requirements:
 
 * A C++11 compiler
-* ImageMagick magickwand (optional, for MOT slideshow)
+* ImageMagick MagickWand (optional, for MOT Slideshow)
 
 This package:
 
@@ -30,6 +30,15 @@ This package:
     ./configure
     make
     sudo make install
+
+ImageMagick and Ubuntu 16.04
+----------------------------
+Please note that Ubuntu 16.04 still (09.03.2017) ships a version of ImageMagick
+that was affected by a memory leak (see #2). Hence ODR-PadEnc will increasingly
+consume memory until it crashes!
+
+Until Ubuntu backports the bugfix, you should therefore use a more recent
+version of ImageMagick (6.9.2-2 or higher). 
 
 Usage of MOT Slideshow and DLS
 ==============================
