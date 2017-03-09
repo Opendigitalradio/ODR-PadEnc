@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stderr, "ODR-PadEnc using charset %s (%d)\n",
-           user_charset, dl_params.charset);
+           user_charset, (int) dl_params.charset);
 
     if (not dl_params.raw_dls) {
         switch (dl_params.charset) {
