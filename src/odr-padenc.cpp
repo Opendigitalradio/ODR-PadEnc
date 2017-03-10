@@ -295,6 +295,8 @@ int main(int argc, char *argv[]) {
 
 #if HAVE_MAGICKWAND
     MagickWandGenesis();
+    if (verbose)
+        fprintf(stderr, "ODR-PadEnc using ImageMagick version '%s'\n", GetMagickVersion(NULL));
 #endif
 
     PADPacketizer pad_packetizer(padlen);
