@@ -30,6 +30,7 @@
 #include "common.h"
 
 #include <stdlib.h>
+#include <signal.h>
 #include <string>
 #include <list>
 #include <thread>
@@ -46,6 +47,14 @@
 
 static const int SLEEPDELAY_DEFAULT = 10; // seconds
 static const int DLS_REPETITION_WHILE_SLS = 50;
+
+static bool do_exit = false;
+
+
+static void break_handler(int) {
+    fprintf(stderr, "...ODR-PadEnc exits...\n");
+    do_exit = true;
+}
 
 
 static void usage(const char* name) {
@@ -150,6 +159,16 @@ static bool read_slides_dir(const std::string& dir, History& history, std::list<
 
 
 int main(int argc, char *argv[]) {
+    // handle signals
+    if(signal(SIGINT, break_handler) == SIG_ERR) {
+        perror("ODR-PadEnc Error: could not set SIGINT handler");
+        return 1;
+    }
+    if(signal(SIGTERM, break_handler) == SIG_ERR) {
+        perror("ODR-PadEnc Error: could not set SIGTERM handler");
+        return 1;
+    }
+
     size_t padlen = 58;
     bool erase_after_tx = false;
     int  sleepdelay = SLEEPDELAY_DEFAULT;
@@ -308,7 +327,7 @@ int main(int argc, char *argv[]) {
 
     std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
 
-    while(1) {
+    while(!do_exit) {
         // try to read slides dir (if present)
         if (sls_dir && slides_to_transmit.empty()) {
             if(!read_slides_dir(sls_dir, slides_history, slides_to_transmit))
@@ -358,5 +377,16 @@ int main(int argc, char *argv[]) {
         std::this_thread::sleep_until(next_run);
     }
 
-    return 1;
+
+    // cleanup
+    if(close(output_fd)) {
+        perror("ODR-PadEnc Error: failed to close output");
+        return 1;
+    }
+
+#if HAVE_MAGICKWAND
+    MagickWandTerminus();
+#endif
+
+    return 0;
 }
