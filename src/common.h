@@ -36,7 +36,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <cstdio>
+#include <stdio.h>
 
 
 extern int verbose;

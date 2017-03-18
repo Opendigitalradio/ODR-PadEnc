@@ -30,10 +30,10 @@
 #ifndef PAD_COMMON_H_
 #define PAD_COMMON_H_
 
-#include <cstdio>
+#include <stdio.h>
 #include <vector>
 #include <deque>
-#include <cstring>
+#include <string.h>
 #include <string>
 #include <stdint.h>
 #include <unistd.h>
