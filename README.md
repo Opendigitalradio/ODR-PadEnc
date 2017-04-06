@@ -21,10 +21,14 @@ How to build
 
 Requirements:
 
-* A C++11 compiler
-* ImageMagick MagickWand (optional, for MOT Slideshow)
+* a C++11 compiler
+* ImageMagick MagickWand, version 6 (optional, for MOT Slideshow)
 
-This package:
+To install MagickWand on Debian or Ubuntu:
+
+    sudo apt-get install libmagickwand-dev
+
+To compile and install ODR-PadEnc:
 
     ./bootstrap
     ./configure
