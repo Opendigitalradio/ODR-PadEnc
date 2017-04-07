@@ -33,6 +33,12 @@
 #endif
 
 
+// ANSI colors
+#define ODR_COLOR_DL    "\x1B[36m"  // DL text
+#define ODR_COLOR_SLS   "\x1B[33m"  // SLS image
+#define ODR_COLOR_RST   "\x1B[0m"   // reset
+
+
 #include <string>
 #include <vector>
 #include <sstream>

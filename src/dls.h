@@ -33,6 +33,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "common.h"
 #include "pad_common.h"
 #include "charset.h"
 

@@ -246,7 +246,7 @@ void DLSManager::writeDLS(const std::string& dls_file, const DL_PARAMS& dl_param
     // toggle the toggle bit only on new DL state
     bool dl_state_is_new = dl_state != dl_state_prev;
     if (verbose) {
-        fprintf(stderr, "ODR-PadEnc writing %s DLS text \"" "\x1B[36m" "%s" "\x1B[0m" "\"\n", dl_state_is_new ? "new" : "old", dl_state.dl_text.c_str());
+        fprintf(stderr, "ODR-PadEnc writing %s DLS text \"" ODR_COLOR_DL "%s" ODR_COLOR_RST "\"\n", dl_state_is_new ? "new" : "old", dl_state.dl_text.c_str());
         if (dl_state.dl_plus_enabled) {
             fprintf(
                     stderr, "ODR-PadEnc writing %s DL Plus tags (IT/IR: %d/%d): ",
