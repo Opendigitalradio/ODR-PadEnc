@@ -132,6 +132,9 @@ pad_t* PADPacketizer::GetPAD() {
 }
 
 void PADPacketizer::WriteAllPADs(int output_fd, int limit) {
+    size_t error_count = 0;
+    size_t error_bytes = 0;
+
     // output a limited amount of PADs (-1 = no limit)
     for (int i = 0; i != limit; i++) {
         pad_t* pad = GetPAD();
@@ -142,11 +145,16 @@ void PADPacketizer::WriteAllPADs(int output_fd, int limit) {
             break;
         }
 
-        if (write(output_fd, &(*pad)[0], pad->size()) != (signed) pad->size())
-            fprintf(stderr, "ODR-PadEnc Error: Could not write PAD\n");
+        if (write(output_fd, &(*pad)[0], pad->size()) != (signed) pad->size()) {
+            error_count++;
+            error_bytes += pad->size();
+        }
 
         delete pad;
     }
+
+    if (error_count)
+        fprintf(stderr, "ODR-PadEnc Error: Could not write %zu PAD(s) with %zu Bytes\n", error_count, error_bytes);
 }
 
 

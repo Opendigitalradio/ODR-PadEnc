@@ -168,6 +168,10 @@ int main(int argc, char *argv[]) {
         perror("ODR-PadEnc Error: could not set SIGTERM handler");
         return 1;
     }
+    if(signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("ODR-PadEnc Error: could not set SIGPIPE to be ignored");
+        return 1;
+    }
 
     size_t padlen = 58;
     bool erase_after_tx = false;
