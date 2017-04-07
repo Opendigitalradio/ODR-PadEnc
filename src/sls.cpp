@@ -413,7 +413,6 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
 
 #else
         fprintf(stderr, "ODR-PadEnc has not been compiled with MagickWand, only RAW slides are supported!\n");
-        ret = -1;
         goto encodefile_out;
 #endif
     }
