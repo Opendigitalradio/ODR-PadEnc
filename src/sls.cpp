@@ -288,72 +288,50 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
 {
     bool result = false;
-    int nseg, lastseglen, i, last, curseglen;
+
 #if HAVE_MAGICKWAND
     MagickWand *m_wand = NULL;
-    MagickBooleanType err;
 #endif
-    size_t blobsize, height, width;
-    bool jpeg_progr;
-    unsigned char *blob = NULL;
-    unsigned char *curseg = NULL;
-    MSCDG msc;
-    DATA_GROUP* dgli;
-    DATA_GROUP* mscdg;
 
-    size_t orig_quality;
-    char*  orig_format = NULL;
-    /*! We handle JPEG differently, because we want to avoid recompressing the
-     * image if it is suitable as is
-     */
-    bool orig_is_jpeg = false;
-
-    /*! If the original is a PNG, we transmit it as is, if the resolution is correct
-     * and the file is not too large. Otherwise it gets resized and sent as JPEG.
-     */
-    bool orig_is_png = false;
-
-    /*! By default, we do resize the image to 320x240, with a quality such that
-     * the blobsize is at most MAXSLIDESIZE.
-     *
-     * For JPEG input files that are already at the right resolution and at the
-     * right blobsize, we disable this to avoid quality loss due to recompression
-     *
-     * As device support of this feature is optional, we furthermore require JPEG input
-     * files to not have progressive coding.
-     */
-    bool resize_required = true;
-
+    uint8_t* blob = NULL;
+    size_t blobsize;
     bool jfif_not_png = true;
 
     if (!raw_slides) {
 #if HAVE_MAGICKWAND
+        /*! By default, we do resize the image to 320x240, with a quality such that
+         * the blobsize is at most MAXSLIDESIZE.
+         *
+         * For JPEG input files that are already at the right resolution and at the
+         * right blobsize, we disable this to avoid quality loss due to recompression
+         *
+         * As device support of this feature is optional, we furthermore require JPEG input
+         * files to not have progressive coding.
+         */
+        bool native_support = false;
+        bool resize_required = true;
 
         m_wand = NewMagickWand();
 
-        err = MagickReadImage(m_wand, fname.c_str());
-        if (err == MagickFalse) {
+        if (MagickReadImage(m_wand, fname.c_str()) == MagickFalse) {
             fprintf(stderr, "ODR-PadEnc Error: Unable to load image '%s'\n",
                     fname.c_str());
 
             goto encodefile_out;
         }
 
-        height       = MagickGetImageHeight(m_wand);
-        width        = MagickGetImageWidth(m_wand);
-        orig_format  = MagickGetImageFormat(m_wand);
-        jpeg_progr   = MagickGetImageInterlaceScheme(m_wand) == JPEGInterlace;
-
-        // By default assume that the image has full quality and can be reduced
-        orig_quality = 100;
+        size_t height       = MagickGetImageHeight(m_wand);
+        size_t width        = MagickGetImageWidth(m_wand);
+        char*  orig_format  = MagickGetImageFormat(m_wand);
+        bool   jpeg_progr   = MagickGetImageInterlaceScheme(m_wand) == JPEGInterlace;
 
         // strip unneeded information (profiles, meta data)
         MagickStripImage(m_wand);
 
         if (orig_format) {
             if (strcmp(orig_format, "JPEG") == 0) {
-                orig_quality = MagickGetImageCompressionQuality(m_wand);
-                orig_is_jpeg = true;
+                size_t orig_quality = MagickGetImageCompressionQuality(m_wand);
+                native_support = true;
 
                 if (verbose) {
                     fprintf(stderr, "ODR-PadEnc image: '" "\x1B[33m" "%s" "\x1B[0m" "' (id=%d)."
@@ -362,7 +340,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
                 }
             }
             else if (strcmp(orig_format, "PNG") == 0) {
-                orig_is_png = true;
+                native_support = true;
                 jfif_not_png = false;
 
                 if (verbose) {
@@ -387,7 +365,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
                     fname.c_str(), fidx, width, height);
         }
 
-        if ((orig_is_jpeg || orig_is_png) && height <= 240 && width <= 320 && not jpeg_progr) {
+        if (native_support && height <= 240 && width <= 320 && not jpeg_progr) {
             // Don't recompress the image and check if the blobsize is suitable
             blob = MagickGetImageBlob(m_wand, &blobsize);
 
@@ -405,8 +383,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
 
         if (resize_required) {
             blobsize = resizeImage(m_wand, &blob, fname, &jfif_not_png);
-        }
-        else {
+        } else {
             // warn if unresized image smaller than default dimension
             warnOnSmallerImage(height, width, fname);
         }
@@ -441,7 +418,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
         }
 
         // allocate memory to contain the whole file:
-        blob = (unsigned char*)malloc(sizeof(char) * blobsize);
+        blob = (uint8_t*) malloc(blobsize);
         if (blob == NULL) {
             fprintf(stderr, "ODR-PadEnc Error: Memory allocation error\n");
             goto encodefile_out;
@@ -475,11 +452,16 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
     }
 
     if (blobsize) {
-        nseg = blobsize / MAXSEGLEN;
-        lastseglen = blobsize % MAXSEGLEN;
-        if (lastseglen != 0) {
+        MSCDG msc;
+        DATA_GROUP* dgli;
+        DATA_GROUP* mscdg;
+
+        size_t nseg = blobsize / MAXSEGLEN;
+        size_t lastseglen = blobsize % MAXSEGLEN;
+        if (lastseglen)
             nseg++;
-        }
+
+        // MOT Header
 
         uint8_vector_t mothdr = createMotHeader(blobsize, fidx, jfif_not_png, fname + SLS_PARAMS_SUFFIX);
         // Create the MSC Data Group C-Structure
@@ -491,13 +473,17 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
         pad_packetizer->AddDG(dgli, false);
         pad_packetizer->AddDG(mscdg, false);
 
-        for (i = 0; i < nseg; i++) {
-            curseg = blob + i * MAXSEGLEN;
-            if (i == nseg-1) {
+        // MOT Body
+
+        for (size_t i = 0; i < nseg; i++) {
+            unsigned char *curseg = blob + i * MAXSEGLEN;
+            size_t curseglen;
+            int last;
+
+            if (i == nseg - 1) {
                 curseglen = lastseglen;
                 last = 1;
-            }
-            else {
+            } else {
                 curseglen = MAXSEGLEN;
                 last = 0;
             }
