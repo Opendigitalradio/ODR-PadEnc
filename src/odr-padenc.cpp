@@ -159,20 +159,6 @@ static bool read_slides_dir(const std::string& dir, History& history, std::list<
 
 
 int main(int argc, char *argv[]) {
-    // handle signals
-    if(signal(SIGINT, break_handler) == SIG_ERR) {
-        perror("ODR-PadEnc Error: could not set SIGINT handler");
-        return 1;
-    }
-    if(signal(SIGTERM, break_handler) == SIG_ERR) {
-        perror("ODR-PadEnc Error: could not set SIGTERM handler");
-        return 1;
-    }
-    if(signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-        perror("ODR-PadEnc Error: could not set SIGPIPE to be ignored");
-        return 1;
-    }
-
     size_t padlen = 58;
     bool erase_after_tx = false;
     int  sleepdelay = SLEEPDELAY_DEFAULT;
@@ -330,6 +316,20 @@ int main(int argc, char *argv[]) {
     History slides_history;
 
     std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
+
+    // handle signals
+    if(signal(SIGINT, break_handler) == SIG_ERR) {
+        perror("ODR-PadEnc Error: could not set SIGINT handler");
+        return 1;
+    }
+    if(signal(SIGTERM, break_handler) == SIG_ERR) {
+        perror("ODR-PadEnc Error: could not set SIGTERM handler");
+        return 1;
+    }
+    if(signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("ODR-PadEnc Error: could not set SIGPIPE to be ignored");
+        return 1;
+    }
 
     while(!do_exit) {
         // try to read slides dir (if present)
