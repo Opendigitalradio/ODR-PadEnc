@@ -29,6 +29,8 @@ fi
 
 AS_IF([ pkg-config MagickWand ],
        AC_DEFINE(HAVE_MAGICKWAND, [1], [Define if MagickWand is available]))
+AS_IF([ pkg-config "MagickWand < 7" ],
+       AC_DEFINE(HAVE_MAGICKWAND_LEGACY, [1], [Define if a legacy (prior to version 7) MagickWand is available]))
 
 
 AM_CONDITIONAL([IS_GIT_REPO], [test -d '.git'])

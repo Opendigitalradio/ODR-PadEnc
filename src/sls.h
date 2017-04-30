@@ -34,7 +34,11 @@
 #include "pad_common.h"
 
 #if HAVE_MAGICKWAND
-#  include <wand/magick_wand.h>
+#  if HAVE_MAGICKWAND_LEGACY
+#    include <wand/magick_wand.h>
+#  else
+#    include <MagickWand/MagickWand.h>
+#  endif
 #endif
 
 #include <sys/stat.h>

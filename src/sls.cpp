@@ -229,7 +229,11 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
             height = height * 320.0 / width;
             width = 320;
         }
+#ifdef HAVE_MAGICKWAND_LEGACY
         MagickResizeImage(m_wand, width, height, LanczosFilter, 1);
+#else
+        MagickResizeImage(m_wand, width, height, LanczosFilter);
+#endif
     }
 
     height = MagickGetImageHeight(m_wand);

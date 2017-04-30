@@ -22,7 +22,8 @@ How to build
 Requirements:
 
 * a C++11 compiler
-* ImageMagick MagickWand, version 6 (optional, for MOT Slideshow)
+* ImageMagick MagickWand (optional, for MOT Slideshow),
+  version 6 (legacy) or 7
 
 To install MagickWand on Debian or Ubuntu:
 
