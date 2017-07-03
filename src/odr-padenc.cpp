@@ -57,19 +57,22 @@ static void break_handler(int) {
 }
 
 
-static void usage(const char* name) {
-    fprintf(stderr, "DAB PAD encoder %s for MOT Slideshow and DLS\n\n"
+static void header() {
+    fprintf(stderr, "ODR-PadEnc %s - DAB PAD encoder for MOT Slideshow and DLS\n\n"
                     "By CSP Innovazione nelle ICT s.c.a r.l. (http://rd.csp.it/) and\n"
                     "Opendigitalradio.org\n\n"
                     "Reads image data from the specified directory, DLS text from a file,\n"
                     "and outputs PAD data to the given FIFO.\n"
-                    "  http://opendigitalradio.org\n\n",
+                    "  https://opendigitalradio.org\n\n",
 #if defined(GITVERSION)
                     GITVERSION
 #else
                     PACKAGE_VERSION
 #endif
                     );
+}
+
+static void usage(const char* name) {
     fprintf(stderr, "Usage: %s [OPTIONS...]\n", name);
     fprintf(stderr, " -d, --dir=DIRNAME      Directory to read images from.\n"
                     " -e, --erase            Erase slides from DIRNAME once they have\n"
@@ -169,6 +172,8 @@ int main(int argc, char *argv[]) {
     const char* output = "/tmp/pad.fifo";
     std::vector<std::string> dls_files;
     int curr_dls_file = 0;
+
+    header();
 
     const struct option longopts[] = {
         {"charset",    required_argument,  0, 'c'},
