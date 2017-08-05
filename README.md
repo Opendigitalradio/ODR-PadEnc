@@ -36,14 +36,16 @@ To compile and install ODR-PadEnc:
     make
     sudo make install
 
-ImageMagick and Ubuntu 16.04
-----------------------------
-Please note that Ubuntu 16.04 still (09.03.2017) ships a version of ImageMagick
-that was affected by a memory leak (see #2). Hence ODR-PadEnc will increasingly
-consume memory until it crashes!
+ImageMagick and Debian Jessie/Ubuntu 16.04
+------------------------------------------
+Please note that Debian Jessie and Ubuntu 16.04 shipped a version of
+ImageMagick that was affected by two memory leaks (see #2, and also
+Ubuntu's [#1671630](https://bugs.launchpad.net/ubuntu/+source/imagemagick/+bug/1671630) and [#1680543](https://bugs.launchpad.net/debian/+source/imagemagick/+bug/1680543)). Hence ODR-PadEnc increasingly consumed
+memory until it crashed.
 
-Until Ubuntu backports the bugfix, you should therefore use a more recent
-version of ImageMagick (6.9.2-2 or higher). 
+This has been fixed with the following package versions:
+- Debian Jessie: 8:6.8.9.9-5+deb8u9
+- Ubuntu 16.04: 8:6.8.9.9-7ubuntu5.7
 
 Usage of MOT Slideshow and DLS
 ==============================
