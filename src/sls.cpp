@@ -99,6 +99,67 @@ int History::get_fidx(const char* filepath)
 }
 
 
+// --- SlideStore -----------------------------------------------------------------
+int SlideStore::FilterSlides(const struct dirent* file) {
+    std::string name = file->d_name;
+
+    // skip '.'/'..' dirs
+    if(name == "." || name == "..")
+        return 0;
+
+    // skip slide params files
+    if(SLSManager::isSlideParamFileFilename(name))
+        return 0;
+
+    return 1;
+}
+
+bool SlideStore::InitFromDir(const std::string& dir) {
+    // start with empty list
+    slides.clear();
+
+    struct dirent** dir_entries;
+    int dir_count = scandir(dir.c_str(), &dir_entries, FilterSlides, alphasort);
+    if(dir_count < 0) {
+        fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", dir.c_str());
+        return false;
+    }
+
+    // add new slides to transmit to list
+    for(int i = 0; i < dir_count; i++) {
+        std::string imagepath = dir + "/" + std::string(dir_entries[i]->d_name);
+        free(dir_entries[i]);
+
+        slide_metadata_t md;
+        md.filepath = imagepath;
+        md.fidx     = history.get_fidx(imagepath.c_str());
+        slides.push_back(md);
+
+        if (verbose)
+            fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath.c_str(), md.fidx);
+    }
+
+    free(dir_entries);
+
+#ifdef DEBUG
+    history.disp_database();
+#endif
+
+    // sort the list in fidx order
+    slides.sort();
+
+    return true;
+}
+
+slide_metadata_t SlideStore::GetSlide() {
+    // pre-condition: list non-empty
+
+    slide_metadata_t slide = slides.front();
+    slides.pop_front();
+    return slide;
+}
+
+
 // --- MOTHeader -----------------------------------------------------------------
 MOTHeader::MOTHeader(size_t body_size, int content_type, int content_subtype)
 : header_size(0), data(uint8_vector_t(7, 0x00)) {

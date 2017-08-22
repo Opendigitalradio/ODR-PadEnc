@@ -32,12 +32,10 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string>
-#include <list>
 #include <thread>
 #include <vector>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <dirent.h>
 #include <getopt.h>
 
 #include "pad_common.h"
@@ -111,53 +109,6 @@ static std::string list_dls_files(std::vector<std::string> dls_files) {
         result += "'" + dls_file + "'";
     }
     return result;
-}
-
-
-static int filter_slides(const struct dirent* file) {
-    std::string name = file->d_name;
-
-    // skip '.'/'..' dirs
-    if(name == "." || name == "..")
-        return 0;
-
-    // skip slide params files
-    if(SLSManager::isSlideParamFileFilename(name))
-        return 0;
-
-    return 1;
-}
-
-
-static bool read_slides_dir(const std::string& dir, History& history, std::list<slide_metadata_t>& slides) {
-    struct dirent** dir_entries;
-    int dir_count = scandir(dir.c_str(), &dir_entries, filter_slides, alphasort);
-    if(dir_count < 0) {
-        fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", dir.c_str());
-        return false;
-    }
-
-    // add new slides to transmit to list
-    for(int i = 0; i < dir_count; i++) {
-        std::string imagepath = dir + "/" + std::string(dir_entries[i]->d_name);
-        free(dir_entries[i]);
-
-        slide_metadata_t md;
-        md.filepath = imagepath;
-        md.fidx     = history.get_fidx(imagepath.c_str());
-        slides.push_back(md);
-
-        if (verbose)
-            fprintf(stderr, "ODR-PadEnc found slide '%s', fidx %d\n", imagepath.c_str(), md.fidx);
-    }
-
-    free(dir_entries);
-
-#ifdef DEBUG
-    slides_history.disp_database();
-#endif
-
-    return true;
 }
 
 
@@ -316,9 +267,7 @@ int main(int argc, char *argv[]) {
     PADPacketizer pad_packetizer(padlen);
     DLSManager dls_manager(&pad_packetizer);
     SLSManager sls_manager(&pad_packetizer);
-
-    std::list<slide_metadata_t> slides_to_transmit;
-    History slides_history;
+    SlideStore slides;
 
     std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
 
@@ -338,18 +287,14 @@ int main(int argc, char *argv[]) {
 
     while(!do_exit) {
         // try to read slides dir (if present)
-        if (sls_dir && slides_to_transmit.empty()) {
-            if(!read_slides_dir(sls_dir, slides_history, slides_to_transmit))
+        if (sls_dir && slides.Empty()) {
+            if (!slides.InitFromDir(sls_dir))
                 return 1;
-
-            // sort the list in fidx order
-            slides_to_transmit.sort();
         }
 
         // if slides available, encode the first one
-        if (!slides_to_transmit.empty()) {
-            slide_metadata_t slide = slides_to_transmit.front();
-            slides_to_transmit.pop_front();
+        if (!slides.Empty()) {
+            slide_metadata_t slide = slides.GetSlide();
 
             if (!sls_manager.encodeFile(slide.filepath, slide.fidx, raw_slides))
                 fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());

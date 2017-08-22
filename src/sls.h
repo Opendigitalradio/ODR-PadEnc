@@ -41,10 +41,12 @@
 #  endif
 #endif
 
+#include <dirent.h>
 #include <sys/stat.h>
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <algorithm>
 
 
@@ -180,6 +182,21 @@ class History {
         // add a new fingerprint into database
         // returns its fidx
         void add(fingerprint_t& fp);
+};
+
+
+// --- SlideStore -----------------------------------------------------------------
+class SlideStore {
+private:
+    std::list<slide_metadata_t> slides;
+    History history;
+
+    static int FilterSlides(const struct dirent* file);
+public:
+    bool InitFromDir(const std::string& dir);
+
+    bool Empty() {return slides.empty();}
+    slide_metadata_t GetSlide();
 };
 
 
