@@ -11,6 +11,7 @@ odr_padenc_CXXFLAGS = $(GITVERSION_FLAGS) @MAGICKWAND_CFLAGS@ -Icontrib -Wall -W
 odr_padenc_LDADD    = @MAGICKWAND_LDADD@
 odr_padenc_SOURCES  = \
 					  src/odr-padenc.cpp \
+					  src/odr-padenc.h \
 					  src/common.cpp \
 					  src/common.h \
 					  src/pad_common.cpp \
