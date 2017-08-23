@@ -486,12 +486,14 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
         blob = (uint8_t*) malloc(blobsize);
         if (blob == NULL) {
             fprintf(stderr, "ODR-PadEnc Error: Memory allocation error\n");
+            fclose(pFile);
             goto encodefile_out;
         }
 
         // copy the file into the buffer:
         if (fread(blob, blobsize, 1, pFile) != 1) {
             fprintf(stderr, "ODR-PadEnc Error: Could not read file\n");
+            fclose(pFile);
             goto encodefile_out;
         }
 
