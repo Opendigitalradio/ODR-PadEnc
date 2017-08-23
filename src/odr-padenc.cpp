@@ -59,12 +59,12 @@ static void usage(const char* name) {
     fprintf(stderr, " -d, --dir=DIRNAME      Directory to read images from.\n"
                     " -e, --erase            Erase slides from DIRNAME once they have\n"
                     "                          been encoded.\n"
-                    " -s, --sleep=DELAY      Wait DELAY seconds between each slide\n"
+                    " -s, --sleep=DUR        Wait DUR seconds between each slide\n"
                     "                          Default: %d\n"
                     " -o, --output=FILENAME  FIFO to write PAD data into.\n"
                     "                          Default: %s\n"
                     " -t, --dls=FILENAME     FIFO or file to read DLS text from.\n"
-                    "                          If specified more than once, use next file after DELAY seconds.\n"
+                    "                          If specified more than once, use next file after slide switch.\n"
                     " -p, --pad=LENGTH       Set the PAD length.\n"
                     "                          Possible values: %s\n"
                     "                          Default: %zu\n"
@@ -300,12 +300,12 @@ int BurstPadEncoder::Encode() {
     SLSEncoder sls_encoder(&pad_packetizer);
     SlideStore slides;
 
-    std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
+    steady_clock::time_point next_run = steady_clock::now();
     int curr_dls_file = 0;
 
     while(!do_exit) {
         // try to read slides dir (if present)
-        if (options.sls_dir && slides.Empty()) {
+        if (options.SLSEnabled() && slides.Empty()) {
             if (!slides.InitFromDir(options.sls_dir))
                 return 1;
         }
@@ -324,7 +324,7 @@ int BurstPadEncoder::Encode() {
 
             // while flushing, insert DLS (if present) after a certain PAD amout
             while (pad_packetizer.QueueFilled()) {
-                if (not options.dls_files.empty())
+                if (options.DLSEnabled())
                     dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
 
                 pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
@@ -332,7 +332,7 @@ int BurstPadEncoder::Encode() {
         }
 
         // encode (a last) DLS (if present)
-        if (not options.dls_files.empty()) {
+        if (options.DLSEnabled()) {
             dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
 
             // switch to next DLS file

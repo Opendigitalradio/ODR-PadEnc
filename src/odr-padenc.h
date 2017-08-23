@@ -43,6 +43,8 @@
 #include "dls.h"
 #include "sls.h"
 
+using std::chrono::steady_clock;
+
 
 // --- PadEncoderOptions -----------------------------------------------------------------
 struct PadEncoderOptions {
@@ -64,6 +66,9 @@ struct PadEncoderOptions {
             sls_dir(NULL),
             output("/tmp/pad.fifo")
     {}
+
+    bool DLSEnabled() {return !dls_files.empty();}
+    bool SLSEnabled() {return sls_dir;}
 };
 
 
