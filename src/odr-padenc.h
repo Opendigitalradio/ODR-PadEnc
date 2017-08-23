@@ -48,7 +48,7 @@
 struct PadEncoderOptions {
     size_t padlen;
     bool erase_after_tx;
-    int sleepdelay;
+    int slide_interval;
     bool raw_slides;
     DL_PARAMS dl_params;
 
@@ -59,7 +59,7 @@ struct PadEncoderOptions {
     PadEncoderOptions() :
             padlen(58),
             erase_after_tx(false),
-            sleepdelay(10),
+            slide_interval(10),
             raw_slides(false),
             sls_dir(NULL),
             output("/tmp/pad.fifo")

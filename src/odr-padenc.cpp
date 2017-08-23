@@ -80,7 +80,7 @@ static void usage(const char* name) {
                     "                          slides is skipped. Use this if you know what you are doing !\n"
                     "                          It is useful only when -d is used\n"
                     " -v, --verbose          Print more information to the console\n",
-                    options_default.sleepdelay,
+                    options_default.slide_interval,
                     options_default.output,
                     PADPacketizer::ALLOWED_PADLEN.c_str(),
                     options_default.padlen
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
                 options.output = optarg;
                 break;
             case 's':
-                options.sleepdelay = atoi(optarg);
+                options.slide_interval = atoi(optarg);
                 break;
             case 't':   // can be used more than once!
                 options.dls_files.push_back(optarg);
@@ -343,7 +343,7 @@ int BurstPadEncoder::Encode() {
         pad_packetizer.WriteAllPADs(output_fd);
 
         // sleep until next run
-        next_run += std::chrono::seconds(options.sleepdelay);
+        next_run += std::chrono::seconds(options.slide_interval);
         std::this_thread::sleep_until(next_run);
     }
 
