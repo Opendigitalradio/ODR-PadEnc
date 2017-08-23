@@ -121,7 +121,7 @@ bool SlideStore::InitFromDir(const std::string& dir) {
     struct dirent** dir_entries;
     int dir_count = scandir(dir.c_str(), &dir_entries, FilterSlides, alphasort);
     if(dir_count < 0) {
-        fprintf(stderr, "ODR-PadEnc Error: cannot open directory '%s'\n", dir.c_str());
+        perror("ODR-PadEnc Error: cannot open slides directory");
         return false;
     }
 
