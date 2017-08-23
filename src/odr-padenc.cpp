@@ -65,7 +65,7 @@ static void usage(const char* name) {
                     "                          Default: %s\n"
                     " -t, --dls=FILENAME     FIFO or file to read DLS text from.\n"
                     "                          If specified more than once, use next file after DELAY seconds.\n"
-                    " -p, --pad=LENGTH       Set the pad length.\n"
+                    " -p, --pad=LENGTH       Set the PAD length.\n"
                     "                          Possible values: %s\n"
                     "                          Default: %zu\n"
                     " -c, --charset=ID       ID of the character set encoding used for DLS text input.\n"
@@ -171,16 +171,16 @@ int main(int argc, char *argv[]) {
     }
 
     if (options.sls_dir && not options.dls_files.empty()) {
-        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from %s to '%s'\n",
-                options.sls_dir, list_dls_files(options.dls_files).c_str(), options.output);
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from %s to '%s' (PAD length: %zu)\n",
+                options.sls_dir, list_dls_files(options.dls_files).c_str(), options.output, options.padlen);
     }
     else if (options.sls_dir) {
-        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' to '%s'. No DLS.\n",
-                options.sls_dir, options.output);
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' to '%s' (PAD length: %zu). No DLS.\n",
+                options.sls_dir, options.output, options.padlen);
     }
     else if (not options.dls_files.empty()) {
-        fprintf(stderr, "ODR-PadEnc encoding DLS from %s to '%s'. No Slideshow.\n",
-                list_dls_files(options.dls_files).c_str(), options.output);
+        fprintf(stderr, "ODR-PadEnc encoding DLS from %s to '%s' (PAD length: %zu). No Slideshow.\n",
+                list_dls_files(options.dls_files).c_str(), options.output, options.padlen);
     }
     else {
         fprintf(stderr, "ODR-PadEnc Error: Neither DLS nor Slideshow to encode !\n");
