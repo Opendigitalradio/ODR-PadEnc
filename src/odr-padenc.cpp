@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
     }
 
     // invoke encoder
-    pad_encoder = new PadEncoder(options);
+    pad_encoder = new BurstPadEncoder(options);
     int result = pad_encoder->Main();
     delete pad_encoder;
 
@@ -241,8 +241,6 @@ int main(int argc, char *argv[]) {
 
 
 // --- PadEncoder -----------------------------------------------------------------
-const int PadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
-
 void PadEncoder::DoExit() {
     std::lock_guard<std::mutex> lock(status_mutex);
 
@@ -250,7 +248,7 @@ void PadEncoder::DoExit() {
 }
 
 int PadEncoder::Main() {
-    int output_fd = open(options.output, O_WRONLY);
+    output_fd = open(options.output, O_WRONLY);
     if (output_fd == -1) {
         perror("ODR-PadEnc Error: failed to open output");
         return 3;
@@ -261,11 +259,6 @@ int PadEncoder::Main() {
     if (verbose)
         fprintf(stderr, "ODR-PadEnc using ImageMagick version '%s'\n", GetMagickVersion(NULL));
 #endif
-
-    PADPacketizer pad_packetizer(options.padlen);
-    DLSManager dls_manager(&pad_packetizer);
-    SLSManager sls_manager(&pad_packetizer);
-    SlideStore slides;
 
     // handle signals
     if(signal(SIGINT, break_handler) == SIG_ERR) {
@@ -280,6 +273,32 @@ int PadEncoder::Main() {
         perror("ODR-PadEnc Error: could not set SIGPIPE to be ignored");
         return 1;
     }
+
+    // invoke actual encoder
+    int result = Encode();
+
+    // cleanup
+    if(close(output_fd)) {
+        perror("ODR-PadEnc Error: failed to close output");
+        return 1;
+    }
+
+#if HAVE_MAGICKWAND
+    MagickWandTerminus();
+#endif
+
+    return result;
+}
+
+
+// --- BurstPadEncoder -----------------------------------------------------------------
+const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
+
+int BurstPadEncoder::Encode() {
+    PADPacketizer pad_packetizer(options.padlen);
+    DLSManager dls_manager(&pad_packetizer);
+    SLSManager sls_manager(&pad_packetizer);
+    SlideStore slides;
 
     std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
     int curr_dls_file = 0;
@@ -327,17 +346,6 @@ int PadEncoder::Main() {
         next_run += std::chrono::seconds(options.sleepdelay);
         std::this_thread::sleep_until(next_run);
     }
-
-
-    // cleanup
-    if(close(output_fd)) {
-        perror("ODR-PadEnc Error: failed to close output");
-        return 1;
-    }
-
-#if HAVE_MAGICKWAND
-    MagickWandTerminus();
-#endif
 
     return 0;
 }

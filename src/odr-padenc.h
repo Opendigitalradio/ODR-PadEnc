@@ -69,16 +69,30 @@ struct PadEncoderOptions {
 
 // --- PadEncoder -----------------------------------------------------------------
 class PadEncoder {
-private:
-    static const int DLS_REPETITION_WHILE_SLS;
-
+protected:
     PadEncoderOptions options;
+    int output_fd;
 
     std::mutex status_mutex;
     bool do_exit;
+
+    PadEncoder(PadEncoderOptions options) : options(options), output_fd(-1), do_exit(false) {}
+
+    virtual int Encode() = 0;
 public:
-    PadEncoder(PadEncoderOptions options) : options(options), do_exit(false) {}
+    virtual ~PadEncoder() {}
 
     int Main();
     void DoExit();
+};
+
+
+// --- BurstPadEncoder -----------------------------------------------------------------
+class BurstPadEncoder : public PadEncoder {
+private:
+    static const int DLS_REPETITION_WHILE_SLS;
+
+    int Encode();
+public:
+    BurstPadEncoder(PadEncoderOptions options) : PadEncoder(options) {}
 };
