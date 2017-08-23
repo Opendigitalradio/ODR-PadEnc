@@ -296,8 +296,8 @@ const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
 
 int BurstPadEncoder::Encode() {
     PADPacketizer pad_packetizer(options.padlen);
-    DLSManager dls_manager(&pad_packetizer);
-    SLSManager sls_manager(&pad_packetizer);
+    DLSEncoder dls_encoder(&pad_packetizer);
+    SLSEncoder sls_encoder(&pad_packetizer);
     SlideStore slides;
 
     std::chrono::steady_clock::time_point next_run = std::chrono::steady_clock::now();
@@ -314,7 +314,7 @@ int BurstPadEncoder::Encode() {
         if (!slides.Empty()) {
             slide_metadata_t slide = slides.GetSlide();
 
-            if (!sls_manager.encodeFile(slide.filepath, slide.fidx, options.raw_slides))
+            if (!sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides))
                 fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());
 
             if (options.erase_after_tx) {
@@ -325,7 +325,7 @@ int BurstPadEncoder::Encode() {
             // while flushing, insert DLS (if present) after a certain PAD amout
             while (pad_packetizer.QueueFilled()) {
                 if (not options.dls_files.empty())
-                    dls_manager.writeDLS(options.dls_files[curr_dls_file], options.dl_params);
+                    dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
 
                 pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
             }
@@ -333,7 +333,7 @@ int BurstPadEncoder::Encode() {
 
         // encode (a last) DLS (if present)
         if (not options.dls_files.empty()) {
-            dls_manager.writeDLS(options.dls_files[curr_dls_file], options.dl_params);
+            dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
 
             // switch to next DLS file
             curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();

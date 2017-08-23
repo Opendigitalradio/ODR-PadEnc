@@ -219,8 +219,8 @@ public:
 };
 
 
-// --- SLSManager -----------------------------------------------------------------
-class SLSManager {
+// --- SLSEncoder -----------------------------------------------------------------
+class SLSEncoder {
 private:
     static const size_t MAXSEGLEN;
     static const size_t MAXSLIDESIZE;
@@ -245,9 +245,9 @@ private:
     int cindex_header;
     int cindex_body;
 public:
-    SLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
+    SLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
-    bool encodeFile(const std::string& fname, int fidx, bool raw_slides);
+    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides);
     static bool isSlideParamFileFilename(const std::string& filename);
 };
 

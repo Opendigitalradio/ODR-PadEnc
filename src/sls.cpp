@@ -108,7 +108,7 @@ int SlideStore::FilterSlides(const struct dirent* file) {
         return 0;
 
     // skip slide params files
-    if(SLSManager::isSlideParamFileFilename(name))
+    if(SLSEncoder::isSlideParamFileFilename(name))
         return 0;
 
     return 1;
@@ -250,14 +250,14 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 }
 
 
-// --- SLSManager -----------------------------------------------------------------
-const size_t SLSManager::MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
-const size_t SLSManager::MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
-const int    SLSManager::MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
-const std::string SLSManager::SLS_PARAMS_SUFFIX = ".sls_params";
+// --- SLSEncoder -----------------------------------------------------------------
+const size_t SLSEncoder::MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
+const size_t SLSEncoder::MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
+const int    SLSEncoder::MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
+const std::string SLSEncoder::SLS_PARAMS_SUFFIX = ".sls_params";
 
 
-void SLSManager::warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {
+void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {
     if (height < 240 || width < 320)
         fprintf(stderr, "ODR-PadEnc Warning: Image '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)\n", fname.c_str(), width, height);
 }
@@ -271,7 +271,7 @@ void SLSManager::warnOnSmallerImage(size_t height, size_t width, const std::stri
  * \return the blobsize
  */
 #if HAVE_MAGICKWAND
-size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png)
+size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png)
 {
     unsigned char* blob_png;
     unsigned char* blob_jpg;
@@ -350,7 +350,7 @@ size_t SLSManager::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 #endif
 
 
-bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
+bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides)
 {
     bool result = false;
 
@@ -586,7 +586,7 @@ encodefile_out:
 }
 
 
-bool SLSManager::parse_sls_param_id(const std::string &key, const std::string &value, uint8_t &target) {
+bool SLSEncoder::parse_sls_param_id(const std::string &key, const std::string &value, uint8_t &target) {
     int value_int = atoi(value.c_str());
     if (value_int >= 0x00 && value_int <= 0xFF) {
         target = value_int;
@@ -597,7 +597,7 @@ bool SLSManager::parse_sls_param_id(const std::string &key, const std::string &v
 }
 
 
-bool SLSManager::check_sls_param_len(const std::string &key, size_t len, size_t len_max) {
+bool SLSEncoder::check_sls_param_len(const std::string &key, size_t len, size_t len_max) {
     if (len <= len_max)
         return true;
     fprintf(stderr, "ODR-PadEnc Warning: SLS parameter '%s' exceeds its maximum length (%zu > %zu) - ignored\n", key.c_str(), len, len_max);
@@ -605,7 +605,7 @@ bool SLSManager::check_sls_param_len(const std::string &key, size_t len, size_t 
 }
 
 
-void SLSManager::process_mot_params_file(MOTHeader& header, const std::string &params_fname) {
+void SLSEncoder::process_mot_params_file(MOTHeader& header, const std::string &params_fname) {
     std::ifstream params_fstream(params_fname);
     if (!params_fstream.is_open())
         return;
@@ -678,7 +678,7 @@ void SLSManager::process_mot_params_file(MOTHeader& header, const std::string &p
 }
 
 
-uint8_vector_t SLSManager::createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, const std::string &params_fname)
+uint8_vector_t SLSEncoder::createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, const std::string &params_fname)
 {
     // prepare ContentName
     uint8_t cntemp[10];     // = 1 + 8 + 1 = charset + name + terminator
@@ -705,7 +705,7 @@ uint8_vector_t SLSManager::createMotHeader(size_t blobsize, int fidx, bool jfif_
 }
 
 
-void SLSManager::createMscDG(MSCDG* msc, unsigned short int dgtype,
+void SLSEncoder::createMscDG(MSCDG* msc, unsigned short int dgtype,
         int *cindex, unsigned short int segnum, unsigned short int lastseg,
         unsigned short int tid, unsigned char* data,
         unsigned short int datalen)
@@ -731,7 +731,7 @@ void SLSManager::createMscDG(MSCDG* msc, unsigned short int dgtype,
 }
 
 
-DATA_GROUP* SLSManager::packMscDG(MSCDG* msc)
+DATA_GROUP* SLSEncoder::packMscDG(MSCDG* msc)
 {
     DATA_GROUP* dg = new DATA_GROUP(9 + msc->seglen, 12, 13);
     uint8_vector_t &b = dg->data;
@@ -759,7 +759,7 @@ DATA_GROUP* SLSManager::packMscDG(MSCDG* msc)
     return dg;
 }
 
-bool SLSManager::isSlideParamFileFilename(const std::string& filename) {
+bool SLSEncoder::isSlideParamFileFilename(const std::string& filename) {
     return filename.length() >= SLS_PARAMS_SUFFIX.length() &&
            filename.substr(filename.length() - SLS_PARAMS_SUFFIX.length()) == SLS_PARAMS_SUFFIX;
 }

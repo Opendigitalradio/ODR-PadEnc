@@ -126,8 +126,8 @@ struct DL_STATE {
 };
 
 
-// --- DLSManager -----------------------------------------------------------------
-class DLSManager {
+// --- DLSEncoder -----------------------------------------------------------------
+class DLSEncoder {
 private:
     static const size_t MAXDLS;
     static const size_t DLS_SEG_LEN_PREFIX;
@@ -149,8 +149,8 @@ private:
     bool dls_toggle;
     DL_STATE dl_state_prev;
 public:
-    DLSManager(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
-    void writeDLS(const std::string& dls_file, const DL_PARAMS& dl_params);
+    DLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
+    void encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params);
 };
 
 #endif /* DLS_H_ */

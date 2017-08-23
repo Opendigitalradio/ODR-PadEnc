@@ -30,15 +30,15 @@
 #include "dls.h"
 
 
-// --- DLSManager -----------------------------------------------------------------
-const size_t DLSManager::MAXDLS = 128; // chars
-const size_t DLSManager::DLS_SEG_LEN_PREFIX = 2;
-const size_t DLSManager::DLS_SEG_LEN_CHAR_MAX = 16;
-const std::string DLSManager::DL_PARAMS_OPEN  = "##### parameters { #####";
-const std::string DLSManager::DL_PARAMS_CLOSE = "##### parameters } #####";
+// --- DLSEncoder -----------------------------------------------------------------
+const size_t DLSEncoder::MAXDLS = 128; // chars
+const size_t DLSEncoder::DLS_SEG_LEN_PREFIX = 2;
+const size_t DLSEncoder::DLS_SEG_LEN_CHAR_MAX = 16;
+const std::string DLSEncoder::DL_PARAMS_OPEN  = "##### parameters { #####";
+const std::string DLSEncoder::DL_PARAMS_CLOSE = "##### parameters } #####";
 
 
-DATA_GROUP* DLSManager::createDynamicLabelCommand(uint8_t command) {
+DATA_GROUP* DLSEncoder::createDynamicLabelCommand(uint8_t command) {
     DATA_GROUP* dg = new DATA_GROUP(2, 2, 3);
     uint8_vector_t &seg_data = dg->data;
 
@@ -59,7 +59,7 @@ DATA_GROUP* DLSManager::createDynamicLabelCommand(uint8_t command) {
     return dg;
 }
 
-DATA_GROUP* DLSManager::createDynamicLabelPlus(const DL_STATE& dl_state) {
+DATA_GROUP* DLSEncoder::createDynamicLabelPlus(const DL_STATE& dl_state) {
     size_t tags_size = dl_state.dl_plus_tags.size();
     size_t len_dl_plus_cmd_field = 1 + 3 * tags_size;
     DATA_GROUP* dg = new DATA_GROUP(2 + len_dl_plus_cmd_field, 2, 3);
@@ -99,7 +99,7 @@ DATA_GROUP* DLSManager::createDynamicLabelPlus(const DL_STATE& dl_state) {
 }
 
 
-bool DLSManager::parse_dl_param_bool(const std::string &key, const std::string &value, bool &target) {
+bool DLSEncoder::parse_dl_param_bool(const std::string &key, const std::string &value, bool &target) {
     if (value == "0") {
         target = 0;
         return true;
@@ -112,7 +112,7 @@ bool DLSManager::parse_dl_param_bool(const std::string &key, const std::string &
     return false;
 }
 
-bool DLSManager::parse_dl_param_int_dl_plus_tag(const std::string &key, const std::string &value, int &target) {
+bool DLSEncoder::parse_dl_param_int_dl_plus_tag(const std::string &key, const std::string &value, int &target) {
     int value_int = atoi(value.c_str());
     if (value_int >= 0x00 && value_int <= 0x7F) {
         target = value_int;
@@ -122,7 +122,7 @@ bool DLSManager::parse_dl_param_int_dl_plus_tag(const std::string &key, const st
     return false;
 }
 
-void DLSManager::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
+void DLSEncoder::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state) {
     std::string line;
     while (std::getline(dls_fstream, line)) {
         // return on params close
@@ -185,7 +185,7 @@ void DLSManager::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state)
 }
 
 
-void DLSManager::writeDLS(const std::string& dls_file, const DL_PARAMS& dl_params) {
+void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params) {
     DL_STATE dl_state;
     std::vector<std::string> dls_lines;
 
@@ -278,13 +278,13 @@ void DLSManager::writeDLS(const std::string& dls_file, const DL_PARAMS& dl_param
 }
 
 
-int DLSManager::dls_count(const std::string& text) {
+int DLSEncoder::dls_count(const std::string& text) {
     size_t text_len = text.size();
     return text_len / DLS_SEG_LEN_CHAR_MAX + (text_len % DLS_SEG_LEN_CHAR_MAX ? 1 : 0);
 }
 
 
-DATA_GROUP* DLSManager::dls_get(const std::string& text, DABCharset charset, int seg_index) {
+DATA_GROUP* DLSEncoder::dls_get(const std::string& text, DABCharset charset, int seg_index) {
     bool first_seg = seg_index == 0;
     bool last_seg  = seg_index == dls_count(text) - 1;
 
@@ -321,7 +321,7 @@ DATA_GROUP* DLSManager::dls_get(const std::string& text, DABCharset charset, int
 }
 
 
-void DLSManager::prepend_dl_dgs(const DL_STATE& dl_state, DABCharset charset) {
+void DLSEncoder::prepend_dl_dgs(const DL_STATE& dl_state, DABCharset charset) {
     // process all DL segments
     int seg_count = dls_count(dl_state.dl_text);
     std::vector<DATA_GROUP*> segs;
