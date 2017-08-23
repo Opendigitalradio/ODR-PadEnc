@@ -299,10 +299,8 @@ int PadEncoder::Main() {
                 fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());
 
             if (options.erase_after_tx) {
-                if (unlink(slide.filepath.c_str()) == -1) {
-                    fprintf(stderr, "ODR-PadEnc Error: erasing file '%s' failed: ", slide.filepath.c_str());
-                    perror("");
-                }
+                if (unlink(slide.filepath.c_str()) == -1)
+                    perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
             }
 
             // while flushing, insert DLS (if present) after a certain PAD amout

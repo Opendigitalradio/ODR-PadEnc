@@ -121,7 +121,7 @@ bool SlideStore::InitFromDir(const std::string& dir) {
     struct dirent** dir_entries;
     int dir_count = scandir(dir.c_str(), &dir_entries, FilterSlides, alphasort);
     if(dir_count < 0) {
-        perror("ODR-PadEnc Error: cannot open slides directory");
+        perror(("ODR-PadEnc Error: cannot open slides directory '" + dir + "'").c_str());
         return false;
     }
 
@@ -462,8 +462,7 @@ bool SLSManager::encodeFile(const std::string& fname, int fidx, bool raw_slides)
         // read file
         FILE* pFile = fopen(fname.c_str(), "rb");
         if (pFile == NULL) {
-            fprintf(stderr, "ODR-PadEnc Error: Unable to load file '%s'\n",
-                    fname.c_str());
+            perror(("ODR-PadEnc Error: Unable to load file '" + fname + "'").c_str());
             goto encodefile_out;
         }
 
