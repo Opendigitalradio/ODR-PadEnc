@@ -131,7 +131,8 @@ pad_t* PADPacketizer::GetPAD() {
     return FlushPAD();
 }
 
-void PADPacketizer::WriteAllPADs(int output_fd, int limit) {
+
+void PADPacketizer::WriteAllPADs(int output_fd, int limit, bool output_sole_fpad) {
     size_t error_count = 0;
     size_t error_bytes = 0;
 
@@ -139,8 +140,8 @@ void PADPacketizer::WriteAllPADs(int output_fd, int limit) {
     for (int i = 0; i != limit; i++) {
         pad_t* pad = GetPAD();
 
-        // if only F-PAD present, abort
-        if (pad->back() == FPAD_LEN) {
+        // if only F-PAD present, abort (if desired)
+        if (pad->back() == FPAD_LEN && !output_sole_fpad) {
             delete pad;
             break;
         }

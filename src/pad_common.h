@@ -121,9 +121,7 @@ public:
     bool QueueFilled();
 
     pad_t* GetPAD();
-
-    // will be removed, when pull (instead of push) approach is implemented!
-    void WriteAllPADs(int output_fd, int limit = -1);
+    void WriteAllPADs(int output_fd, int limit = -1, bool output_sole_fpad = false);
 
     static DATA_GROUP* CreateDataGroupLengthIndicator(size_t len);
     static bool CheckPADLen(size_t len);
