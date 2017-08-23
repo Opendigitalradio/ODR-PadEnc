@@ -313,7 +313,7 @@ DATA_GROUP* DLSManager::dls_get(const std::string& text, DABCharset charset, int
 
 #ifdef DEBUG
     fprintf(stderr, "DL segment:");
-    for (int i = 0; i < seg_data.size(); i++)
+    for (size_t i = 0; i < seg_data.size(); i++)
         fprintf(stderr, " %02x", seg_data[i]);
     fprintf(stderr, "\n");
 #endif
@@ -340,8 +340,7 @@ void DLSManager::prepend_dl_dgs(const DL_STATE& dl_state, DABCharset charset) {
     pad_packetizer->AddDGs(segs, true);
 
 #ifdef DEBUG
-    fprintf(stderr, "PAD length: %d\n", padlen);
-    fprintf(stderr, "DLS text: %s\n", text.c_str());
+    fprintf(stderr, "DLS text: %s\n", dl_state.dl_text.c_str());
     fprintf(stderr, "Number of DL segments: %d\n", seg_count);
 #endif
 }
