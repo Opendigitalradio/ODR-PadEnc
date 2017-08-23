@@ -29,6 +29,7 @@
 
 #include "common.h"
 
+#include <mutex>
 #include <stdlib.h>
 #include <signal.h>
 #include <string>
@@ -43,7 +44,41 @@
 #include "sls.h"
 
 
-static const int SLEEPDELAY_DEFAULT = 10; // seconds
-static const int DLS_REPETITION_WHILE_SLS = 50;
+// --- PadEncoderOptions -----------------------------------------------------------------
+struct PadEncoderOptions {
+    size_t padlen;
+    bool erase_after_tx;
+    int sleepdelay;
+    bool raw_slides;
+    DL_PARAMS dl_params;
 
-static bool do_exit = false;
+    const char* sls_dir;
+    const char* output;
+    std::vector<std::string> dls_files;
+
+    PadEncoderOptions() :
+            padlen(58),
+            erase_after_tx(false),
+            sleepdelay(10),
+            raw_slides(false),
+            sls_dir(NULL),
+            output("/tmp/pad.fifo")
+    {}
+};
+
+
+// --- PadEncoder -----------------------------------------------------------------
+class PadEncoder {
+private:
+    static const int DLS_REPETITION_WHILE_SLS;
+
+    PadEncoderOptions options;
+
+    std::mutex status_mutex;
+    bool do_exit;
+public:
+    PadEncoder(PadEncoderOptions options) : options(options), do_exit(false) {}
+
+    int Main();
+    void DoExit();
+};
