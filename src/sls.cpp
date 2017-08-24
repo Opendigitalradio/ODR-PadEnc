@@ -255,6 +255,8 @@ const size_t SLSEncoder::MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, c
 const size_t SLSEncoder::MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
 const int    SLSEncoder::MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
 const std::string SLSEncoder::SLS_PARAMS_SUFFIX = ".sls_params";
+const int SLSEncoder::APPTYPE_MOT_START = 12;
+const int SLSEncoder::APPTYPE_MOT_CONT = 13;
 
 
 void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {
@@ -733,7 +735,7 @@ void SLSEncoder::createMscDG(MSCDG* msc, unsigned short int dgtype,
 
 DATA_GROUP* SLSEncoder::packMscDG(MSCDG* msc)
 {
-    DATA_GROUP* dg = new DATA_GROUP(9 + msc->seglen, 12, 13);
+    DATA_GROUP* dg = new DATA_GROUP(9 + msc->seglen, APPTYPE_MOT_START, APPTYPE_MOT_CONT);
     uint8_vector_t &b = dg->data;
 
     // headers

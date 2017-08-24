@@ -81,6 +81,7 @@ const size_t PADPacketizer::SHORT_PAD           =   6; // F-PAD + 1x CI         
 const size_t PADPacketizer::VARSIZE_PAD_MIN     =   8; // F-PAD + 1x CI + end marker + 1x  4 bytes data sub-field
 const size_t PADPacketizer::VARSIZE_PAD_MAX     = 196; // F-PAD + 4x CI              + 4x 48 bytes data sub-field
 const std::string PADPacketizer::ALLOWED_PADLEN = "6 (short X-PAD), 8 to 196 (variable size X-PAD)";
+const int PADPacketizer::APPTYPE_DGLI = 1;
 
 PADPacketizer::PADPacketizer(size_t pad_size) :
     xpad_size_max(pad_size - FPAD_LEN),
@@ -308,7 +309,7 @@ pad_t* PADPacketizer::FlushPAD() {
 }
 
 DATA_GROUP* PADPacketizer::CreateDataGroupLengthIndicator(size_t len) {
-    DATA_GROUP* dg = new DATA_GROUP(2, 1, 1);    // continuation never used (except for comparison at short X-PAD)
+    DATA_GROUP* dg = new DATA_GROUP(2, APPTYPE_DGLI, APPTYPE_DGLI);    // continuation never used (except for comparison at short X-PAD)
     uint8_vector_t &data = dg->data;
 
     // Data Group length

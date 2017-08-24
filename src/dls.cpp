@@ -36,10 +36,13 @@ const size_t DLSEncoder::DLS_SEG_LEN_PREFIX = 2;
 const size_t DLSEncoder::DLS_SEG_LEN_CHAR_MAX = 16;
 const std::string DLSEncoder::DL_PARAMS_OPEN  = "##### parameters { #####";
 const std::string DLSEncoder::DL_PARAMS_CLOSE = "##### parameters } #####";
+const int DLSEncoder::APPTYPE_START = 2;
+const int DLSEncoder::APPTYPE_CONT = 3;
+
 
 
 DATA_GROUP* DLSEncoder::createDynamicLabelCommand(uint8_t command) {
-    DATA_GROUP* dg = new DATA_GROUP(2, 2, 3);
+    DATA_GROUP* dg = new DATA_GROUP(2, APPTYPE_START, APPTYPE_CONT);
     uint8_vector_t &seg_data = dg->data;
 
     // prefix: toggle? + first seg + last seg + command flag + command
@@ -62,7 +65,7 @@ DATA_GROUP* DLSEncoder::createDynamicLabelCommand(uint8_t command) {
 DATA_GROUP* DLSEncoder::createDynamicLabelPlus(const DL_STATE& dl_state) {
     size_t tags_size = dl_state.dl_plus_tags.size();
     size_t len_dl_plus_cmd_field = 1 + 3 * tags_size;
-    DATA_GROUP* dg = new DATA_GROUP(2 + len_dl_plus_cmd_field, 2, 3);
+    DATA_GROUP* dg = new DATA_GROUP(2 + len_dl_plus_cmd_field, APPTYPE_START, APPTYPE_CONT);
     uint8_vector_t &seg_data = dg->data;
 
     // prefix: toggle? + first seg + last seg + command flag + command
@@ -292,7 +295,7 @@ DATA_GROUP* DLSEncoder::dls_get(const std::string& text, DABCharset charset, int
     const char *seg_text_start = text.c_str() + seg_text_offset;
     size_t seg_text_len = std::min(text.size() - seg_text_offset, DLS_SEG_LEN_CHAR_MAX);
 
-    DATA_GROUP* dg = new DATA_GROUP(DLS_SEG_LEN_PREFIX + seg_text_len, 2, 3);
+    DATA_GROUP* dg = new DATA_GROUP(DLS_SEG_LEN_PREFIX + seg_text_len, APPTYPE_START, APPTYPE_CONT);
     uint8_vector_t &seg_data = dg->data;
 
     // prefix: toggle? + first seg? + last seg? + (seg len - 1)

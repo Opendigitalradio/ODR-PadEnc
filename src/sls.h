@@ -245,6 +245,9 @@ private:
     int cindex_header;
     int cindex_body;
 public:
+    static const int APPTYPE_MOT_START;
+    static const int APPTYPE_MOT_CONT;
+
     SLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
     bool encodeSlide(const std::string& fname, int fidx, bool raw_slides);

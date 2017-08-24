@@ -149,6 +149,9 @@ private:
     bool dls_toggle;
     DL_STATE dl_state_prev;
 public:
+    static const int APPTYPE_START;
+    static const int APPTYPE_CONT;
+
     DLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
     void encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params);
 };

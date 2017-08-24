@@ -112,6 +112,7 @@ private:
     pad_t* FlushPAD();
 public:
     static const std::string ALLOWED_PADLEN;
+    static const int APPTYPE_DGLI;
 
     PADPacketizer(size_t pad_size);
     ~PADPacketizer();
