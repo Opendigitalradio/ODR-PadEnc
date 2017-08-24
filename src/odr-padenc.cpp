@@ -64,7 +64,7 @@ static void usage(const char* name) {
                     " -o, --output=FILENAME  FIFO to write PAD data into.\n"
                     "                          Default: %s\n"
                     " -t, --dls=FILENAME     FIFO or file to read DLS text from.\n"
-                    "                          If specified more than once, use next file after slide switch.\n"
+                    "                          If specified more than once, use next file after slide switch (for uniform PAD encoder, -l is used instead).\n"
                     " -p, --pad=LENGTH       Set the PAD length.\n"
                     "                          Possible values: %s\n"
                     "                          Default: %zu\n"
@@ -79,11 +79,23 @@ static void usage(const char* name) {
                     " -R, --raw-slides       Do not process slides. Integrity checks and resizing\n"
                     "                          slides is skipped. Use this if you know what you are doing !\n"
                     "                          It is useful only when -d is used\n"
-                    " -v, --verbose          Print more information to the console\n",
+                    " -v, --verbose          Print more information to the console\n"
+                    "\n"
+                    "Parameters for uniform PAD encoder only:\n"
+                    " -f, --frame-dur=DUR    Enable the uniform PAD encoder and set the duration of one frame/AU in milliseconds.\n"
+                    " -l, --label=DUR        Wait DUR seconds between each label (if more than one file used)\n"
+                    "                          Default: %d\n"
+                    " -L, --label-ins=DUR    Insert label every DUR milliseconds\n"
+                    "                          Default: %d\n"
+                    " -i, --init-burst=COUNT Sets a PAD burst amount to initially fill the output FIFO\n"
+                    "                          Default: %d\n",
                     options_default.slide_interval,
                     options_default.output,
                     PADPacketizer::ALLOWED_PADLEN.c_str(),
-                    options_default.padlen
+                    options_default.padlen,
+                    options_default.label_interval,
+                    options_default.label_insertion,
+                    options_default.init_burst
            );
 }
 
@@ -117,12 +129,16 @@ int main(int argc, char *argv[]) {
         {"sleep",      required_argument,  0, 's'},
         {"raw-slides", no_argument,        0, 'R'},
         {"help",       no_argument,        0, 'h'},
+        {"frame-dur",  required_argument,  0, 'f'},
+        {"label",      required_argument,  0, 'l'},
+        {"label-ins",  required_argument,  0, 'L'},
+        {"init-burst", required_argument,  0, 'i'},
         {"verbose",    no_argument,        0, 'v'},
         {0,0,0,0},
     };
 
     int ch;
-    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:v", longopts, NULL)) != -1) {
+    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:f:l:L:i:v", longopts, NULL)) != -1) {
         switch (ch) {
             case 'c':
                 options.dl_params.charset = (DABCharset) atoi(optarg);
@@ -153,6 +169,18 @@ int main(int argc, char *argv[]) {
                 break;
             case 'R':
                 options.raw_slides = true;
+                break;
+            case 'f':
+                options.frame_dur = atoi(optarg);
+                break;
+            case 'l':
+                options.label_interval = atoi(optarg);
+                break;
+            case 'L':
+                options.label_insertion = atoi(optarg);
+                break;
+            case 'i':
+                options.init_burst = atoi(optarg);
                 break;
             case 'v':
                 verbose++;
@@ -231,8 +259,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // invoke encoder
-    pad_encoder = new BurstPadEncoder(options);
+
+    // TODO: check uniform PAD encoder options!?
+
+
+    // invoke selected encoder
+    if (options.frame_dur) {
+        fprintf(stderr, "ODR-PadEnc using uniform PAD encoder\n");
+        pad_encoder = new UniformPadEncoder(options);
+    } else {
+        fprintf(stderr, "ODR-PadEnc using burst PAD encoder\n");
+        pad_encoder = new BurstPadEncoder(options);
+    }
     int result = pad_encoder->Main();
     delete pad_encoder;
 
@@ -388,6 +426,73 @@ int BurstPadEncoder::Encode() {
 
     // schedule next run at next slide interval
     run_timeline += std::chrono::seconds(options.slide_interval);
+
+    return 0;
+}
+
+
+// --- UniformPadEncoder -----------------------------------------------------------------
+UniformPadEncoder::UniformPadEncoder(PadEncoderOptions options) : PadEncoder(options) {
+    // PAD related timelines
+    pad_timeline = steady_clock::now();
+    next_slide = pad_timeline;
+    next_label = pad_timeline;
+    next_label_insertion = pad_timeline;
+
+    // consider initial burst
+    run_timeline -= std::chrono::milliseconds(options.init_burst * options.frame_dur);
+
+    // if multiple DLS files, ensure that initial increment leads to first one
+    if (options.dls_files.size() > 1)
+        curr_dls_file = -1;
+}
+
+int UniformPadEncoder::Encode() {
+    int result = 0;
+
+    // handle SLS
+    if (options.SLSEnabled()) {
+        if (options.slide_interval > 0) {
+            // encode slides regularly
+            if (pad_timeline >= next_slide) {
+                result = EncodeSlide(true);
+                next_slide += std::chrono::seconds(options.slide_interval);
+            }
+        } else {
+            // encode slide as soon as previous slide has been transmitted
+            if (!pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START))
+                result = EncodeSlide(true);
+        }
+    }
+    if (result)
+        return result;
+
+    // handle DLS
+    if (options.DLSEnabled()) {
+        if (options.dls_files.size() > 1 && pad_timeline >= next_label) {
+            // switch to next DLS file
+            curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();
+            next_label += std::chrono::seconds(options.label_interval);
+
+            // enforce label insertion
+            next_label_insertion = pad_timeline;
+        }
+
+        if (pad_timeline >= next_label_insertion) {
+            // encode label
+            result = EncodeLabel(true);
+            next_label_insertion += std::chrono::milliseconds(options.label_insertion);
+        }
+    }
+    if (result)
+        return result;
+
+    // flush one PAD
+    pad_packetizer.WriteAllPADs(output_fd, 1, true);
+    pad_timeline += std::chrono::milliseconds(options.frame_dur);
+
+    // schedule next run at next frame/AU
+    run_timeline += std::chrono::milliseconds(options.frame_dur);
 
     return 0;
 }

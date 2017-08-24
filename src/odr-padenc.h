@@ -51,6 +51,10 @@ struct PadEncoderOptions {
     size_t padlen;
     bool erase_after_tx;
     int slide_interval;
+    int frame_dur;          // uniform PAD encoder only
+    int label_interval;     // uniform PAD encoder only
+    int label_insertion;    // uniform PAD encoder only
+    int init_burst;         // uniform PAD encoder only
     bool raw_slides;
     DL_PARAMS dl_params;
 
@@ -62,6 +66,10 @@ struct PadEncoderOptions {
             padlen(58),
             erase_after_tx(false),
             slide_interval(10),
+            frame_dur(0),
+            label_interval(12),
+            label_insertion(1200),
+            init_burst(12),
             raw_slides(false),
             sls_dir(NULL),
             output("/tmp/pad.fifo")
@@ -117,4 +125,18 @@ private:
     int Encode();
 public:
     BurstPadEncoder(PadEncoderOptions options) : PadEncoder(options) {}
+};
+
+
+// --- UniformPadEncoder -----------------------------------------------------------------
+class UniformPadEncoder : public PadEncoder {
+private:
+    steady_clock::time_point pad_timeline;
+    steady_clock::time_point next_slide;
+    steady_clock::time_point next_label;
+    steady_clock::time_point next_label_insertion;
+
+    int Encode();
+public:
+    UniformPadEncoder(PadEncoderOptions options);
 };
