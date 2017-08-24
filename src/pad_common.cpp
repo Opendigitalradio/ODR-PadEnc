@@ -111,6 +111,13 @@ bool PADPacketizer::QueueFilled() {
     return !queue.empty();
 }
 
+bool PADPacketizer::QueueContainsDG(int apptype_start) {
+    for(std::deque<DATA_GROUP*>::const_iterator it = queue.cbegin(); it != queue.cend(); it++)
+        if((*it)->apptype_start == apptype_start)
+            return true;
+    return false;
+}
+
 pad_t* PADPacketizer::GetPAD() {
     bool pad_flushable = false;
 

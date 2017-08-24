@@ -120,6 +120,7 @@ public:
     void AddDG(DATA_GROUP* dg, bool prepend);
     void AddDGs(const std::vector<DATA_GROUP*>& dgs, bool prepend);
     bool QueueFilled();
+    bool QueueContainsDG(int apptype_start);
 
     pad_t* GetPAD();
     void WriteAllPADs(int output_fd, int limit = -1, bool output_sole_fpad = false);
