@@ -261,22 +261,22 @@ int PadEncoder::Main() {
 #endif
 
     // handle signals
-    if(signal(SIGINT, break_handler) == SIG_ERR) {
+    if (signal(SIGINT, break_handler) == SIG_ERR) {
         perror("ODR-PadEnc Error: could not set SIGINT handler");
         return 1;
     }
-    if(signal(SIGTERM, break_handler) == SIG_ERR) {
+    if (signal(SIGTERM, break_handler) == SIG_ERR) {
         perror("ODR-PadEnc Error: could not set SIGTERM handler");
         return 1;
     }
-    if(signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         perror("ODR-PadEnc Error: could not set SIGPIPE to be ignored");
         return 1;
     }
 
     // invoke actual encoder
     int result = 0;
-    for(;;) {
+    for (;;) {
         {
             std::lock_guard<std::mutex> lock(status_mutex);
 
@@ -287,7 +287,7 @@ int PadEncoder::Main() {
         result = Encode();
 
         // abort on error
-        if(result)
+        if (result)
             break;
 
         // sleep until next run
@@ -295,7 +295,7 @@ int PadEncoder::Main() {
     }
 
     // cleanup
-    if(close(output_fd)) {
+    if (close(output_fd)) {
         perror("ODR-PadEnc Error: failed to close output");
         return 1;
     }
@@ -307,13 +307,15 @@ int PadEncoder::Main() {
     return result;
 }
 
+int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
+    // skip insertion, if desired and previous one not yet finished
+    if (skip_if_already_queued && pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START)) {
+        fprintf(stderr, "ODR-PadEnc Warning: skipping slide insertion, as previous one still in transmission!\n");
+        return 0;
+    }
 
-// --- BurstPadEncoder -----------------------------------------------------------------
-const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
-
-int BurstPadEncoder::Encode() {
     // try to read slides dir (if present)
-    if (options.SLSEnabled() && slides.Empty()) {
+    if (slides.Empty()) {
         if (!slides.InitFromDir(options.sls_dir))
             return 1;
     }
@@ -329,11 +331,43 @@ int BurstPadEncoder::Encode() {
             if (unlink(slide.filepath.c_str()) == -1)
                 perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
         }
+    }
+
+    return 0;
+}
+
+int PadEncoder::EncodeLabel(bool skip_if_already_queued) {
+    // skip insertion, if desired and previous one not yet finished
+    if (skip_if_already_queued && pad_packetizer.QueueContainsDG(DLSEncoder::APPTYPE_START)) {
+        fprintf(stderr, "ODR-PadEnc Warning: skipping label insertion, as previous one still in transmission!\n");
+        return 0;
+    }
+
+    dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
+
+    return 0;
+}
+
+
+// --- BurstPadEncoder -----------------------------------------------------------------
+const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
+
+int BurstPadEncoder::Encode() {
+    int result = 0;
+
+    // encode SLS
+    if (options.SLSEnabled()) {
+        result = EncodeSlide(false);
+        if (result)
+            return result;
 
         // while flushing, insert DLS (if present) after a certain PAD amout
         while (pad_packetizer.QueueFilled()) {
-            if (options.DLSEnabled())
-                dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
+            if (options.DLSEnabled()) {
+                result = EncodeLabel(false);
+                if (result)
+                    return result;
+            }
 
             pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
         }
@@ -341,7 +375,9 @@ int BurstPadEncoder::Encode() {
 
     // encode (a last) DLS (if present)
     if (options.DLSEnabled()) {
-        dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
+        result = EncodeLabel(false);
+        if (result)
+            return result;
 
         // switch to next DLS file
         curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();
