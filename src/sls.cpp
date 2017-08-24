@@ -207,7 +207,7 @@ void MOTHeader::AddExtensionFixedSize(int pli, int param_id, const uint8_t* data
 
 
 void MOTHeader::AddExtensionVarSize(int param_id, const uint8_t* data_field, size_t data_field_len) {
-    AddParamHeader(0b11, param_id);
+    AddParamHeader(0x3, param_id);
 
     // longer field lens use 15 instead of 7 bits
     bool ext = data_field_len > 127;
@@ -230,20 +230,20 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 
     switch(data_field_len) {
     case 0:
-        pli = 0b00;
+        pli = 0x0;  // 0b00
         break;
     case 1:
-        pli = 0b01;
+        pli = 0x1;  // 0b01
         break;
     case 4:
-        pli = 0b10;
+        pli = 0x2;  // 0b10
         break;
     default:
-        pli = 0b11;
+        pli = 0x3;  // 0b11
         break;
     }
 
-    if (pli == 0b11)
+    if (pli == 0x3)
         AddExtensionVarSize(param_id, data_field, data_field_len);
     else
         AddExtensionFixedSize(pli, param_id, data_field, data_field_len);

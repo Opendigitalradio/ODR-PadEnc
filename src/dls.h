@@ -40,11 +40,11 @@
 
 // DL/DL+ commands
 enum {
-    DLS_CMD_REMOVE_LABEL = 0b0001,
-    DLS_CMD_DL_PLUS      = 0b0010
+    DLS_CMD_REMOVE_LABEL = 0x1 /* 0b0001 */,
+    DLS_CMD_DL_PLUS      = 0x2 /* 0b0010 */
 };
 enum {
-    DL_PLUS_CMD_TAGS     = 0b0000
+    DL_PLUS_CMD_TAGS     = 0x0 /* 0b0000 */
 };
 
 
