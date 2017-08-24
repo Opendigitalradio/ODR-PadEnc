@@ -76,12 +76,23 @@ struct PadEncoderOptions {
 class PadEncoder {
 protected:
     PadEncoderOptions options;
+    PADPacketizer pad_packetizer;
+    DLSEncoder dls_encoder;
+    SLSEncoder sls_encoder;
+    SlideStore slides;
     int output_fd;
 
     std::mutex status_mutex;
     bool do_exit;
 
-    PadEncoder(PadEncoderOptions options) : options(options), output_fd(-1), do_exit(false) {}
+    PadEncoder(PadEncoderOptions options) :
+        options(options),
+        pad_packetizer(PADPacketizer(options.padlen)),
+        dls_encoder(DLSEncoder(&pad_packetizer)),
+        sls_encoder(SLSEncoder(&pad_packetizer)),
+        output_fd(-1),
+        do_exit(false)
+    {}
 
     virtual int Encode() = 0;
 public:

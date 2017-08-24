@@ -295,11 +295,6 @@ int PadEncoder::Main() {
 const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
 
 int BurstPadEncoder::Encode() {
-    PADPacketizer pad_packetizer(options.padlen);
-    DLSEncoder dls_encoder(&pad_packetizer);
-    SLSEncoder sls_encoder(&pad_packetizer);
-    SlideStore slides;
-
     steady_clock::time_point next_run = steady_clock::now();
     int curr_dls_file = 0;
 
