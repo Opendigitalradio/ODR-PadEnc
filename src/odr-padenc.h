@@ -80,7 +80,9 @@ protected:
     DLSEncoder dls_encoder;
     SLSEncoder sls_encoder;
     SlideStore slides;
+    int curr_dls_file;
     int output_fd;
+    steady_clock::time_point run_timeline;
 
     std::mutex status_mutex;
     bool do_exit;
@@ -90,7 +92,9 @@ protected:
         pad_packetizer(PADPacketizer(options.padlen)),
         dls_encoder(DLSEncoder(&pad_packetizer)),
         sls_encoder(SLSEncoder(&pad_packetizer)),
+        curr_dls_file(0),
         output_fd(-1),
+        run_timeline(steady_clock::now()),
         do_exit(false)
     {}
 

@@ -275,7 +275,24 @@ int PadEncoder::Main() {
     }
 
     // invoke actual encoder
-    int result = Encode();
+    int result = 0;
+    for(;;) {
+        {
+            std::lock_guard<std::mutex> lock(status_mutex);
+
+            if(do_exit)
+                break;
+        }
+
+        result = Encode();
+
+        // abort on error
+        if(result)
+            break;
+
+        // sleep until next run
+        std::this_thread::sleep_until(run_timeline);
+    }
 
     // cleanup
     if(close(output_fd)) {
@@ -295,52 +312,46 @@ int PadEncoder::Main() {
 const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
 
 int BurstPadEncoder::Encode() {
-    steady_clock::time_point next_run = steady_clock::now();
-    int curr_dls_file = 0;
-
-    while(!do_exit) {
-        // try to read slides dir (if present)
-        if (options.SLSEnabled() && slides.Empty()) {
-            if (!slides.InitFromDir(options.sls_dir))
-                return 1;
-        }
-
-        // if slides available, encode the first one
-        if (!slides.Empty()) {
-            slide_metadata_t slide = slides.GetSlide();
-
-            if (!sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides))
-                fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());
-
-            if (options.erase_after_tx) {
-                if (unlink(slide.filepath.c_str()) == -1)
-                    perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
-            }
-
-            // while flushing, insert DLS (if present) after a certain PAD amout
-            while (pad_packetizer.QueueFilled()) {
-                if (options.DLSEnabled())
-                    dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
-
-                pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
-            }
-        }
-
-        // encode (a last) DLS (if present)
-        if (options.DLSEnabled()) {
-            dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
-
-            // switch to next DLS file
-            curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();
-        }
-
-        // flush all remaining PADs
-        pad_packetizer.WriteAllPADs(output_fd);
-
-        // sleep until next run
-        next_run += std::chrono::seconds(options.slide_interval);
-        std::this_thread::sleep_until(next_run);
+    // try to read slides dir (if present)
+    if (options.SLSEnabled() && slides.Empty()) {
+        if (!slides.InitFromDir(options.sls_dir))
+            return 1;
     }
+
+    // if slides available, encode the first one
+    if (!slides.Empty()) {
+        slide_metadata_t slide = slides.GetSlide();
+
+        if (!sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides))
+            fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());
+
+        if (options.erase_after_tx) {
+            if (unlink(slide.filepath.c_str()) == -1)
+                perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
+        }
+
+        // while flushing, insert DLS (if present) after a certain PAD amout
+        while (pad_packetizer.QueueFilled()) {
+            if (options.DLSEnabled())
+                dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
+
+            pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
+        }
+    }
+
+    // encode (a last) DLS (if present)
+    if (options.DLSEnabled()) {
+        dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
+
+        // switch to next DLS file
+        curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();
+    }
+
+    // flush all remaining PADs
+    pad_packetizer.WriteAllPADs(output_fd);
+
+    // schedule next run at next slide interval
+    run_timeline += std::chrono::seconds(options.slide_interval);
 
     return 0;
 }
