@@ -29,9 +29,12 @@ bin_PROGRAMS = odr-padenc$(EXEEXT)
 
 
 EXTRA_DIST = \
+    $(top_srcdir)/ChangeLog \
     $(top_srcdir)/bootstrap \
     $(top_srcdir)/README.md \
-    $(top_srcdir)/Doxyfile
+    $(top_srcdir)/Doxyfile \
+    $(top_srcdir)/COPYING \
+    $(top_srcdir)/LICENCE
 
 doc: export PROJECT_NUMBER:=$(shell git describe --dirty)
 
