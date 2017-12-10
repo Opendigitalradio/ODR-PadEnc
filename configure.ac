@@ -16,6 +16,15 @@ LT_INIT
 
 AX_CXX_COMPILE_STDCXX_11(noext,mandatory)
 
+
+AC_LANG_PUSH([C++])
+AX_CHECK_COMPILE_FLAG([-Wduplicated-cond], [CXXFLAGS="$CXXFLAGS -Wduplicated-cond"])
+AX_CHECK_COMPILE_FLAG([-Wduplicated-branches], [CXXFLAGS="$CXXFLAGS -Wduplicated-branches"])
+AX_CHECK_COMPILE_FLAG([-Wlogical-op], [CXXFLAGS="$CXXFLAGS -Wlogical-op"])
+AX_CHECK_COMPILE_FLAG([-Wrestrict], [CXXFLAGS="$CXXFLAGS -Wrestrict"])
+AX_CHECK_COMPILE_FLAG(["-Wformat=2"], [CXXFLAGS="$CXXFLAGS -Wformat=2"])
+AC_LANG_POP([C++])
+
 AC_CHECK_LIB([m], [sin])
 
 if pkg-config MagickWand; then
