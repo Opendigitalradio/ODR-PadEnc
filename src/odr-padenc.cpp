@@ -279,12 +279,6 @@ int main(int argc, char *argv[]) {
 
 
 // --- PadEncoder -----------------------------------------------------------------
-void PadEncoder::DoExit() {
-    std::lock_guard<std::mutex> lock(status_mutex);
-
-    do_exit = true;
-}
-
 int PadEncoder::Main() {
     output_fd = open(options.output, O_WRONLY);
     if (output_fd == -1) {
@@ -314,14 +308,7 @@ int PadEncoder::Main() {
 
     // invoke actual encoder
     int result = 0;
-    for (;;) {
-        {
-            std::lock_guard<std::mutex> lock(status_mutex);
-
-            if(do_exit)
-                break;
-        }
-
+    while (!do_exit) {
         result = Encode();
 
         // abort on error

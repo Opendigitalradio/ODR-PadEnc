@@ -29,7 +29,7 @@
 
 #include "common.h"
 
-#include <mutex>
+#include <atomic>
 #include <stdlib.h>
 #include <signal.h>
 #include <string>
@@ -92,8 +92,7 @@ protected:
     int output_fd;
     steady_clock::time_point run_timeline;
 
-    std::mutex status_mutex;
-    bool do_exit;
+    std::atomic<bool> do_exit;
 
     PadEncoder(PadEncoderOptions options) :
         options(options),
@@ -113,7 +112,7 @@ public:
     virtual ~PadEncoder() {}
 
     int Main();
-    void DoExit();
+    void DoExit() {do_exit = true;}
 };
 
 
