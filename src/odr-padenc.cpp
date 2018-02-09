@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -283,6 +283,17 @@ int PadEncoder::Main() {
     output_fd = open(options.output, O_WRONLY);
     if (output_fd == -1) {
         perror("ODR-PadEnc Error: failed to open output");
+        return 3;
+    }
+
+    // check for FIFO
+    struct stat fifo_stat;
+    if (fstat(output_fd, &fifo_stat)) {
+        perror("ODR-PadEnc Error: could not retrieve output file stat");
+        return 1;
+    }
+    if ((fifo_stat.st_mode & S_IFMT) != S_IFIFO) {
+        fprintf(stderr, "ODR-PadEnc Error: the output file must be a FIFO!\n");
         return 3;
     }
 

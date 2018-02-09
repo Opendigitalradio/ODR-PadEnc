@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,8 +36,10 @@
 #include <thread>
 #include <vector>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include "pad_common.h"
 #include "dls.h"
