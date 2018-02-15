@@ -350,23 +350,38 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
         return 0;
     }
 
-    // try to read slides dir (if present)
-    if (slides.Empty()) {
-        if (!slides.InitFromDir(options.sls_dir))
-            return 1;
-    }
-
-    // if slides available, encode the first one
-    if (!slides.Empty()) {
-        slide_metadata_t slide = slides.GetSlide();
-
-        if (!sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides))
-            fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'\n", slide.filepath.c_str());
-
-        if (options.erase_after_tx) {
-            if (unlink(slide.filepath.c_str()) == -1)
-                perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
+    // usually invoked once
+    for(;;) {
+        // try to read slides dir (if present)
+        if (slides.Empty()) {
+            if (!slides.InitFromDir(options.sls_dir))
+                return 1;
+            slides_success = false;
         }
+
+        // if slides available, encode the first one
+        if (!slides.Empty()) {
+            slide_metadata_t slide = slides.GetSlide();
+
+            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides)) {
+                slides_success = true;
+                if (options.erase_after_tx) {
+                    if (unlink(slide.filepath.c_str()) == -1)
+                        perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
+                }
+            } else {
+                /* skip to next slide, except this is the last slide and so far
+                 * no slide worked, to prevent an infinite loop and because
+                 * re-reading the slides dir just moments later won't result in
+                 * a different amount of slides. */
+                bool skipping = !(slides.Empty() && !slides_success);
+                fprintf(stderr, "ODR-PadEnc Error: cannot encode file '%s'; %s\n", slide.filepath.c_str(), skipping ? "skipping" : "giving up for now");
+                if (skipping)
+                    continue;
+            }
+        }
+
+        break;
     }
 
     return 0;

@@ -90,6 +90,7 @@ protected:
     DLSEncoder dls_encoder;
     SLSEncoder sls_encoder;
     SlideStore slides;
+    bool slides_success;
     int curr_dls_file;
     int output_fd;
     steady_clock::time_point run_timeline;
@@ -101,6 +102,7 @@ protected:
         pad_packetizer(PADPacketizer(options.padlen)),
         dls_encoder(DLSEncoder(&pad_packetizer)),
         sls_encoder(SLSEncoder(&pad_packetizer)),
+        slides_success(false),
         curr_dls_file(0),
         output_fd(-1),
         run_timeline(steady_clock::now()),
