@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -196,6 +196,7 @@ public:
     bool InitFromDir(const std::string& dir);
 
     bool Empty() {return slides.empty();}
+    void Clear() {slides.clear();}
     slide_metadata_t GetSlide();
 };
 
@@ -247,6 +248,7 @@ private:
 public:
     static const int APPTYPE_MOT_START;
     static const int APPTYPE_MOT_CONT;
+    static const std::string REQUEST_REREAD_FILENAME;
 
     SLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 

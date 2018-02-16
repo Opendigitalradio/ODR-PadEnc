@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -111,12 +111,16 @@ int SlideStore::FilterSlides(const struct dirent* file) {
     if(SLSEncoder::isSlideParamFileFilename(name))
         return 0;
 
+    // skip re-read request file
+    if(name == SLSEncoder::REQUEST_REREAD_FILENAME.c_str())
+        return 0;
+
     return 1;
 }
 
 bool SlideStore::InitFromDir(const std::string& dir) {
     // start with empty list
-    slides.clear();
+    Clear();
 
     struct dirent** dir_entries;
     int dir_count = scandir(dir.c_str(), &dir_entries, FilterSlides, alphasort);
@@ -257,6 +261,7 @@ const int    SLSEncoder::MINQUALITY      =    40; // Do not allow the image comp
 const std::string SLSEncoder::SLS_PARAMS_SUFFIX = ".sls_params";
 const int SLSEncoder::APPTYPE_MOT_START = 12;
 const int SLSEncoder::APPTYPE_MOT_CONT = 13;
+const std::string SLSEncoder::REQUEST_REREAD_FILENAME = "REQUEST_SLIDES_DIR_REREAD";
 
 
 void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {

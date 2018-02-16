@@ -350,8 +350,26 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
         return 0;
     }
 
+    // check for slides dir re-read request
+    std::string request_reread_path = std::string(options.sls_dir) + "/" + SLSEncoder::REQUEST_REREAD_FILENAME;
+    struct stat request_reread_stat;
+    if (stat(request_reread_path.c_str(), &request_reread_stat)) {
+        // ignore missing request file
+        if (errno != ENOENT) {
+            perror("ODR-PadEnc Error: could not retrieve slides dir re-read request file stat");
+            return 1;
+        }
+    } else {
+        // handle request
+        fprintf(stderr, "ODR-PadEnc received slides dir re-read request!\n");
+        if (unlink(request_reread_path.c_str()))
+            perror(("ODR-PadEnc Error: erasing file '" + request_reread_path +"' failed").c_str());
+
+        slides.Clear();
+    }
+
     // usually invoked once
-    for(;;) {
+    for (;;) {
         // try to read slides dir (if present)
         if (slides.Empty()) {
             if (!slides.InitFromDir(options.sls_dir))
@@ -366,7 +384,7 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
             if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides)) {
                 slides_success = true;
                 if (options.erase_after_tx) {
-                    if (unlink(slide.filepath.c_str()) == -1)
+                    if (unlink(slide.filepath.c_str()))
                         perror(("ODR-PadEnc Error: erasing file '" + slide.filepath +"' failed").c_str());
                 }
             } else {
