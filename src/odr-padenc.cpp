@@ -56,43 +56,46 @@ static void header() {
 static void usage(const char* name) {
     PadEncoderOptions options_default;
     fprintf(stderr, "Usage: %s [OPTIONS...]\n", name);
-    fprintf(stderr, " -d, --dir=DIRNAME      Directory to read images from.\n"
-                    " -e, --erase            Erase slides from DIRNAME once they have\n"
-                    "                          been encoded.\n"
-                    " -s, --sleep=DUR        Wait DUR seconds between each slide\n"
-                    "                          Default: %d\n"
-                    " -o, --output=FILENAME  FIFO to write PAD data into.\n"
-                    "                          Default: %s\n"
-                    " -t, --dls=FILENAME     FIFO or file to read DLS text from.\n"
-                    "                          If specified more than once, use next file after slide switch (for uniform PAD encoder, -l is used instead).\n"
-                    " -p, --pad=LENGTH       Set the PAD length.\n"
-                    "                          Possible values: %s\n"
-                    "                          Default: %zu\n"
-                    " -c, --charset=ID       ID of the character set encoding used for DLS text input.\n"
-                    "                          ID =  0: Complete EBU Latin based repertoire\n"
-                    "                          ID =  6: ISO/IEC 10646 using UCS-2 BE\n"
-                    "                          ID = 15: ISO/IEC 10646 using UTF-8\n"
-                    "                          Default: 15\n"
-                    " -r, --remove-dls       Always insert a DLS Remove Label command when replacing a DLS text.\n"
-                    " -C, --raw-dls          Do not convert DLS texts to Complete EBU Latin based repertoire\n"
-                    "                          character set encoding.\n"
-                    " -R, --raw-slides       Do not process slides. Integrity checks and resizing\n"
-                    "                          slides is skipped. Use this if you know what you are doing !\n"
-                    "                          It is useful only when -d is used\n"
-                    " -v, --verbose          Print more information to the console\n"
+    fprintf(stderr, " -d, --dir=DIRNAME         Directory to read images from.\n"
+                    " -e, --erase               Erase slides from DIRNAME once they have\n"
+                    "                             been encoded.\n"
+                    " -s, --sleep=DUR           Wait DUR seconds between each slide\n"
+                    "                             Default: %d\n"
+                    " -o, --output=FILENAME     FIFO to write PAD data into.\n"
+                    "                             Default: %s\n"
+                    " -t, --dls=FILENAME        FIFO or file to read DLS text from.\n"
+                    "                             If specified more than once, use next file after slide switch (for uniform PAD encoder, -l is used instead).\n"
+                    " -p, --pad=LENGTH          Set the PAD length in bytes.\n"
+                    "                             Possible values: %s\n"
+                    "                             Default: %zu\n"
+                    " -c, --charset=ID          ID of the character set encoding used for DLS text input.\n"
+                    "                             ID =  0: Complete EBU Latin based repertoire\n"
+                    "                             ID =  6: ISO/IEC 10646 using UCS-2 BE\n"
+                    "                             ID = 15: ISO/IEC 10646 using UTF-8\n"
+                    "                             Default: 15\n"
+                    " -r, --remove-dls          Always insert a DLS Remove Label command when replacing a DLS text.\n"
+                    " -C, --raw-dls             Do not convert DLS texts to Complete EBU Latin based repertoire\n"
+                    "                             character set encoding.\n"
+                    " -m, --max-slide-size=SIZE Recompress slide if above the specified maximum size in bytes.\n"
+                    "                             Default: %zu (Simple Profile)\n"
+                    " -R, --raw-slides          Do not process slides. Integrity checks and resizing\n"
+                    "                             slides is skipped. Use this if you know what you are doing !\n"
+                    "                             It is useful only when -d is used\n"
+                    " -v, --verbose             Print more information to the console\n"
                     "\n"
                     "Parameters for uniform PAD encoder only:\n"
-                    " -f, --frame-dur=DUR    Enable the uniform PAD encoder and set the duration of one frame/AU in milliseconds.\n"
-                    " -l, --label=DUR        Wait DUR seconds between each label (if more than one file used)\n"
-                    "                          Default: %d\n"
-                    " -L, --label-ins=DUR    Insert label every DUR milliseconds\n"
-                    "                          Default: %d\n"
-                    " -i, --init-burst=COUNT Sets a PAD burst amount to initially fill the output FIFO\n"
-                    "                          Default: %d\n",
+                    " -f, --frame-dur=DUR       Enable the uniform PAD encoder and set the duration of one frame/AU in milliseconds.\n"
+                    " -l, --label=DUR           Wait DUR seconds between each label (if more than one file used)\n"
+                    "                             Default: %d\n"
+                    " -L, --label-ins=DUR       Insert label every DUR milliseconds\n"
+                    "                             Default: %d\n"
+                    " -i, --init-burst=COUNT    Sets a PAD burst amount to initially fill the output FIFO\n"
+                    "                             Default: %d\n",
                     options_default.slide_interval,
                     options_default.output,
                     PADPacketizer::ALLOWED_PADLEN.c_str(),
                     options_default.padlen,
+                    options_default.max_slide_size,
                     options_default.label_interval,
                     options_default.label_insertion,
                     options_default.init_burst
@@ -118,27 +121,28 @@ int main(int argc, char *argv[]) {
     PadEncoderOptions options;
 
     const struct option longopts[] = {
-        {"charset",    required_argument,  0, 'c'},
-        {"raw-dls",    no_argument,        0, 'C'},
-        {"remove-dls", no_argument,        0, 'r'},
-        {"dir",        required_argument,  0, 'd'},
-        {"erase",      no_argument,        0, 'e'},
-        {"output",     required_argument,  0, 'o'},
-        {"dls",        required_argument,  0, 't'},
-        {"pad",        required_argument,  0, 'p'},
-        {"sleep",      required_argument,  0, 's'},
-        {"raw-slides", no_argument,        0, 'R'},
-        {"help",       no_argument,        0, 'h'},
-        {"frame-dur",  required_argument,  0, 'f'},
-        {"label",      required_argument,  0, 'l'},
-        {"label-ins",  required_argument,  0, 'L'},
-        {"init-burst", required_argument,  0, 'i'},
-        {"verbose",    no_argument,        0, 'v'},
+        {"charset",         required_argument,  0, 'c'},
+        {"raw-dls",         no_argument,        0, 'C'},
+        {"remove-dls",      no_argument,        0, 'r'},
+        {"dir",             required_argument,  0, 'd'},
+        {"erase",           no_argument,        0, 'e'},
+        {"output",          required_argument,  0, 'o'},
+        {"dls",             required_argument,  0, 't'},
+        {"pad",             required_argument,  0, 'p'},
+        {"sleep",           required_argument,  0, 's'},
+        {"max-slide-size",  required_argument,  0, 'm'},
+        {"raw-slides",      no_argument,        0, 'R'},
+        {"help",            no_argument,        0, 'h'},
+        {"frame-dur",       required_argument,  0, 'f'},
+        {"label",           required_argument,  0, 'l'},
+        {"label-ins",       required_argument,  0, 'L'},
+        {"init-burst",      required_argument,  0, 'i'},
+        {"verbose",         no_argument,        0, 'v'},
         {0,0,0,0},
     };
 
     int ch;
-    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:f:l:L:i:v", longopts, NULL)) != -1) {
+    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:f:l:L:i:vm:", longopts, NULL)) != -1) {
         switch (ch) {
             case 'c':
                 options.dl_params.charset = (DABCharset) atoi(optarg);
@@ -166,6 +170,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'p':
                 options.padlen = atoi(optarg);
+                break;
+            case 'm':
+                options.max_slide_size = atoi(optarg);
                 break;
             case 'R':
                 options.raw_slides = true;
@@ -195,6 +202,11 @@ int main(int argc, char *argv[]) {
     if (!PADPacketizer::CheckPADLen(options.padlen)) {
         fprintf(stderr, "ODR-PadEnc Error: PAD length %zu invalid: Possible values: %s\n",
                 options.padlen, PADPacketizer::ALLOWED_PADLEN.c_str());
+        return 2;
+    }
+    if (options.max_slide_size > SLSEncoder::MAXSLIDESIZE_SIMPLE) {
+        fprintf(stderr, "ODR-PadEnc Error: max slide size %zu exceeds Simple Profile limit %zu\n",
+                options.max_slide_size, SLSEncoder::MAXSLIDESIZE_SIMPLE);
         return 2;
     }
 
@@ -381,7 +393,7 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
         if (!slides.Empty()) {
             slide_metadata_t slide = slides.GetSlide();
 
-            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides)) {
+            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides, options.max_slide_size)) {
                 slides_success = true;
                 if (options.erase_after_tx) {
                     if (unlink(slide.filepath.c_str()))

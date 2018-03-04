@@ -57,6 +57,7 @@ struct PadEncoderOptions {
     int label_interval;     // uniform PAD encoder only
     int label_insertion;    // uniform PAD encoder only
     int init_burst;         // uniform PAD encoder only
+    size_t max_slide_size;
     bool raw_slides;
     DL_PARAMS dl_params;
 
@@ -72,6 +73,7 @@ struct PadEncoderOptions {
             label_interval(12),
             label_insertion(1200),
             init_burst(12),
+            max_slide_size(SLSEncoder::MAXSLIDESIZE_SIMPLE),
             raw_slides(false),
             sls_dir(NULL),
             output("/tmp/pad.fifo")

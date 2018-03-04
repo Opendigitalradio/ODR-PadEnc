@@ -255,9 +255,9 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 
 
 // --- SLSEncoder -----------------------------------------------------------------
-const size_t SLSEncoder::MAXSEGLEN       =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
-const size_t SLSEncoder::MAXSLIDESIZE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
-const int    SLSEncoder::MINQUALITY      =    40; // Do not allow the image compressor to go below JPEG quality 40
+const size_t SLSEncoder::MAXSEGLEN              =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
+const size_t SLSEncoder::MAXSLIDESIZE_SIMPLE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
+const int    SLSEncoder::MINQUALITY             =    40; // Do not allow the image compressor to go below JPEG quality 40
 const std::string SLSEncoder::SLS_PARAMS_SUFFIX = ".sls_params";
 const int SLSEncoder::APPTYPE_MOT_START = 12;
 const int SLSEncoder::APPTYPE_MOT_CONT = 13;
@@ -278,7 +278,7 @@ void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::stri
  * \return the blobsize
  */
 #if HAVE_MAGICKWAND
-size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png)
+size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png, size_t max_slide_size)
 {
     unsigned char* blob_png;
     unsigned char* blob_jpg;
@@ -323,11 +323,11 @@ size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 
         MagickSetImageCompressionQuality(m_wand, quality_jpg);
         blob_jpg = MagickGetImageBlob(m_wand, &blobsize_jpg);
-    } while (blobsize_jpg > MAXSLIDESIZE && quality_jpg > MINQUALITY);
+    } while (blobsize_jpg > max_slide_size && quality_jpg > MINQUALITY);
 
 
     // check for max size
-    if (blobsize_png > MAXSLIDESIZE && blobsize_jpg > MAXSLIDESIZE) {
+    if (blobsize_png > max_slide_size && blobsize_jpg > max_slide_size) {
         fprintf(stderr, "ODR-PadEnc: Image Size too large after compression: %zu bytes (PNG), %zu bytes (JPEG)\n",
                 blobsize_png, blobsize_jpg);
         MagickRelinquishMemory(blob_png);
@@ -357,7 +357,7 @@ size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 #endif
 
 
-bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides)
+bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size)
 {
     bool result = false;
 
@@ -441,7 +441,7 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
             // Don't recompress the image and check if the blobsize is suitable
             blob = MagickGetImageBlob(m_wand, &blobsize);
 
-            if (blobsize <= MAXSLIDESIZE) {
+            if (blobsize <= max_slide_size) {
                 if (verbose) {
                     fprintf(stderr, "ODR-PadEnc image: '" ODR_COLOR_SLS "%s" ODR_COLOR_RST "' (id=%d).  No resize needed: %zu Bytes\n",
                             fname.c_str(), fidx, blobsize);
@@ -454,7 +454,7 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
         }
 
         if (resize_required) {
-            blobsize = resizeImage(m_wand, &blob, fname, &jfif_not_png);
+            blobsize = resizeImage(m_wand, &blob, fname, &jfif_not_png, max_slide_size);
         } else {
             // warn if unresized image smaller than default dimension
             warnOnSmallerImage(height, width, fname);
@@ -483,7 +483,7 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
                     fname.c_str(), fidx, blobsize);
         }
 
-        if (blobsize > MAXSLIDESIZE) {
+        if (blobsize > max_slide_size) {
             fprintf(stderr, "ODR-PadEnc Warning: blob in raw-slide '%s' too large\n",
                     fname.c_str());
         }

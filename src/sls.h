@@ -224,13 +224,12 @@ public:
 class SLSEncoder {
 private:
     static const size_t MAXSEGLEN;
-    static const size_t MAXSLIDESIZE;
     static const int    MINQUALITY;
     static const std::string SLS_PARAMS_SUFFIX;
 
     void warnOnSmallerImage(size_t height, size_t width, const std::string& fname);
 #if HAVE_MAGICKWAND
-    size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png);
+    size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png, size_t max_slide_size);
 #endif
     bool parse_sls_param_id(const std::string &key, const std::string &value, uint8_t &target);
     bool check_sls_param_len(const std::string &key, size_t len, size_t len_max);
@@ -246,13 +245,14 @@ private:
     int cindex_header;
     int cindex_body;
 public:
+    static const size_t MAXSLIDESIZE_SIMPLE;
     static const int APPTYPE_MOT_START;
     static const int APPTYPE_MOT_CONT;
     static const std::string REQUEST_REREAD_FILENAME;
 
     SLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
-    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides);
+    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size);
     static bool isSlideParamFileFilename(const std::string& filename);
 };
 
