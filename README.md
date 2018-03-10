@@ -7,11 +7,11 @@ support for:
 * MOT Slideshow (including catSLS), according to ETSI EN 301 234 and TS 101 499
 * DLS (including DL Plus), according to ETSI EN 300 401 and TS 102 980
 
-To encode DLS and Slideshow data, the *odr-padenc* tool reads images
+To encode DLS and Slideshow data, the `odr-padenc` tool reads images
 from a folder and DLS text from a file, and generates the PAD data
 for the encoder.
 
-For detailed usage, see the usage screen of the tool with the *-h* option.
+For detailed usage, see the usage screen of the tool with the `-h` option.
 
 More information is available on the
 [Opendigitalradio wiki](http://wiki.opendigitalradio.org/ODR-PadEnc)
@@ -50,8 +50,8 @@ This has been fixed with the following package versions:
 Usage of MOT Slideshow and DLS
 ==============================
 
-*odr-padenc* reads images from the specified folder, and generates the PAD
-data for the encoder. This is communicated through a fifo to the encoder. It
+`odr-padenc` reads images from the specified folder, and generates the PAD
+data for the encoder. This is communicated through a FIFO to the encoder. It
 also reads DLS from a file, and includes this information in the PAD.
 
 If ImageMagick is available
@@ -64,47 +64,43 @@ transmitted as PNG without any recompression.
 
 RAW Format
 ----------
-If ImageMagick is not compiled in, or when enabled with the -R option, the images
+If ImageMagick is not compiled in, or when enabled with the `-R` option, the images
 are not modified, and are transmitted as-is. Use this if you can guarantee that
 the generated files are smaller than 50kB and not larger than 320x240 pixels.
 
 Supported Encoders
 ------------------
-*odr-audioenc* can insert the PAD data from *odr-padenc* into the bitstream.
-The mp2 encoder [Toolame-DAB](https://github.com/Opendigitalradio/toolame-dab)
-can also read *odr-padenc* data.
+`odr-audioenc` can insert the PAD data from `odr-padenc` into the bitstream.
+The MP2 encoder [Toolame-DAB](https://github.com/Opendigitalradio/toolame-dab)
+can also read `odr-padenc` data.
 
-This is an ongoing development. Make sure you use the same pad length option
-for *odr-padenc* and the audio encoder. Only some pad lengths are supported,
-please see *odr-padenc*'s help.
+This is an ongoing development. Make sure you use the same PAD length option
+for `odr-padenc` and the audio encoder. Only some PAD lengths are supported,
+please see `odr-padenc`'s help.
 
 Character Sets
 --------------
-When *odr-padenc* is launched with the default character set options, it assumes
+When `odr-padenc` is launched with the default character set options, it assumes
 that the DLS text in the file is encoded in UTF-8, and will convert it according to
 the DAB standard to the *Complete EBU Latin based repertoire* character set encoding.
 
 If you set the character set encoding to any other setting (except
 *Complete EBU Latin based repertoire* which needs no conversion),
-*odr-padenc* will abort, as it does not support any other conversion than from
+`odr-padenc` will abort, as it does not support any other conversion than from
 UTF-8 to *Complete EBU Latin based repertoire*.
 
-You can however use the -C option to transmit the untouched DLS text. In this
+You can however use the `-C` option to transmit the untouched DLS text. In this
 case, it is your responsibility to ensure the encoding is valid.  For instance,
 if your data is already encoded in *Complete EBU Latin based repertoire*, you
-must specify both --charset=0 and --raw-dls.
+must specify both `--charset=0` and `--raw-dls`.
 
 Known Limitations
 =================
-*odr-padenc* encodes slides in a 10 second interval, which is not linked
-to the rate at which the encoder reads the PAD data. It also doesn't prioritise
-DLS transmission over Slides.
-
 Some receivers are unable to decode slides larger than some size, even within the allowed
 size limit given in the specification.
 
 Thanks
 ======
 
-This encoder was initially called *mot-encoder* and has been contributed by
+This encoder was initially called `mot-encoder` and has been contributed by
 [CSP](http://rd.csp.it).
