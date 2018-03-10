@@ -255,7 +255,7 @@ void MOTHeader::AddExtension(int param_id, const uint8_t* data_field, size_t dat
 
 
 // --- SLSEncoder -----------------------------------------------------------------
-const size_t SLSEncoder::MAXSEGLEN              =  8189; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1)
+const size_t SLSEncoder::MAXSEGLEN              =  1013; // Bytes (EN 301 234 v2.1.1, ch. 5.1.1 limits to 8189); the complete DG will be 1024 bytes
 const size_t SLSEncoder::MAXSLIDESIZE_SIMPLE    = 51200; // Bytes (TS 101 499 v3.1.1, ch. 9.1.2)
 const int    SLSEncoder::MINQUALITY             =    40; // Do not allow the image compressor to go below JPEG quality 40
 const std::string SLSEncoder::SLS_PARAMS_SUFFIX = ".sls_params";
