@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -152,6 +152,15 @@ void PADPacketizer::WriteAllPADs(int output_fd, int limit, bool output_sole_fpad
         if (pad->back() == FPAD_LEN && !output_sole_fpad) {
             delete pad;
             break;
+        }
+
+        if (verbose >= 2) {
+            fprintf(stderr, "ODR-PadEnc writing PAD (%zu bytes):", pad->size());
+            for(size_t j = 0; j < pad->size(); j++) {
+                const char sep = (j == (pad->size() - 1) || j == (pad->size() - 1 - FPAD_LEN)) ? '|' : ' ';
+                fprintf(stderr, "%c%02X", sep , (*pad)[j]);
+            }
+            fprintf(stderr, "\n");
         }
 
         if (write(output_fd, &(*pad)[0], pad->size()) != (signed) pad->size()) {

@@ -81,7 +81,7 @@ static void usage(const char* name) {
                     " -R, --raw-slides          Do not process slides. Integrity checks and resizing\n"
                     "                             slides is skipped. Use this if you know what you are doing !\n"
                     "                             It is useful only when -d is used\n"
-                    " -v, --verbose             Print more information to the console\n"
+                    " -v, --verbose             Print more information to the console (may be used more than once)\n"
                     "\n"
                     "Parameters for uniform PAD encoder only:\n"
                     " -f, --frame-dur=DUR       Enable the uniform PAD encoder and set the duration of one frame/AU in milliseconds.\n"
