@@ -522,6 +522,23 @@ int UniformPadEncoder::Encode() {
 
     // handle DLS
     if (options.DLSEnabled()) {
+        // check for DLS re-read request
+        for (size_t i = 0; i < options.dls_files.size(); i++) {
+            int reread = CheckRereadFile("DLS file '" + options.dls_files[i] + "'", options.dls_files[i] + DLSEncoder::REQUEST_REREAD_SUFFIX);
+            switch (reread) {
+            case 1:     // re-read requested
+                // switch to desired DLS file
+                curr_dls_file = i;
+                next_label = pad_timeline + std::chrono::seconds(options.label_interval);
+
+                // enforce label insertion
+                next_label_insertion = pad_timeline;
+                break;
+            case -1:    // error
+                return 1;
+            }
+        }
+
         if (options.dls_files.size() > 1 && pad_timeline >= next_label) {
             // switch to next DLS file
             curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();

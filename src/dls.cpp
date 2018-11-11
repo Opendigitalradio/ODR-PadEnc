@@ -38,6 +38,7 @@ const std::string DLSEncoder::DL_PARAMS_OPEN  = "##### parameters { #####";
 const std::string DLSEncoder::DL_PARAMS_CLOSE = "##### parameters } #####";
 const int DLSEncoder::APPTYPE_START = 2;
 const int DLSEncoder::APPTYPE_CONT = 3;
+const std::string DLSEncoder::REQUEST_REREAD_SUFFIX = ".REQUEST_DLS_REREAD";
 
 
 
