@@ -355,6 +355,24 @@ int PadEncoder::Main() {
     return result;
 }
 
+int PadEncoder::CheckRereadFile(const std::string& type, const std::string& path) {
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat)) {
+        // ignore missing request file
+        if (errno != ENOENT) {
+            perror(("ODR-PadEnc Error: could not retrieve " + type +" re-read request file stat").c_str());
+            return -1;  // error
+        }
+        return 0;   // no re-read
+    } else {
+        // handle request
+        fprintf(stderr, "ODR-PadEnc received %s re-read request!\n", type.c_str());
+        if (unlink(path.c_str()))
+            perror(("ODR-PadEnc Error: erasing file '" + path +"' failed").c_str());
+        return 1;   // re-read
+    }
+}
+
 int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
     // skip insertion, if desired and previous one not yet finished
     if (skip_if_already_queued && pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START)) {
@@ -363,21 +381,13 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
     }
 
     // check for slides dir re-read request
-    std::string request_reread_path = std::string(options.sls_dir) + "/" + SLSEncoder::REQUEST_REREAD_FILENAME;
-    struct stat request_reread_stat;
-    if (stat(request_reread_path.c_str(), &request_reread_stat)) {
-        // ignore missing request file
-        if (errno != ENOENT) {
-            perror("ODR-PadEnc Error: could not retrieve slides dir re-read request file stat");
-            return 1;
-        }
-    } else {
-        // handle request
-        fprintf(stderr, "ODR-PadEnc received slides dir re-read request!\n");
-        if (unlink(request_reread_path.c_str()))
-            perror(("ODR-PadEnc Error: erasing file '" + request_reread_path +"' failed").c_str());
-
+    int reread = CheckRereadFile("slides dir", std::string(options.sls_dir) + "/" + SLSEncoder::REQUEST_REREAD_FILENAME);
+    switch (reread) {
+    case 1:     // re-read requested
         slides.Clear();
+        break;
+    case -1:    // error
+        return 1;
     }
 
     // usually invoked once

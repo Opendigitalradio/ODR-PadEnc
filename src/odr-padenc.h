@@ -114,6 +114,7 @@ protected:
     virtual int Encode() = 0;
     int EncodeSlide(bool skip_if_already_queued);
     int EncodeLabel(bool skip_if_already_queued);
+    static int CheckRereadFile(const std::string& type, const std::string& path);
 public:
     virtual ~PadEncoder() {}
 
