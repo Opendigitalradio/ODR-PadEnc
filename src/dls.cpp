@@ -178,7 +178,7 @@ void DLSEncoder::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state)
             if (parse_dl_param_int_dl_plus_tag("content_type", params[0], content_type) &
                 parse_dl_param_int_dl_plus_tag("start_marker", params[1], start_marker) &
                 parse_dl_param_int_dl_plus_tag("length_marker", params[2], length_marker))
-                dl_state.dl_plus_tags.push_back(DL_PLUS_TAG(content_type, start_marker, length_marker));
+                dl_state.dl_plus_tags.emplace_back(content_type, start_marker, length_marker);
             continue;
         }
 
@@ -244,7 +244,7 @@ void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_pa
 
     // if DL Plus enabled, but no DL Plus tags were added, add the required DUMMY tag
     if (dl_state.dl_plus_enabled && dl_state.dl_plus_tags.empty())
-        dl_state.dl_plus_tags.push_back(DL_PLUS_TAG());
+        dl_state.dl_plus_tags.emplace_back();
 
 
     // toggle the toggle bit only on new DL state
