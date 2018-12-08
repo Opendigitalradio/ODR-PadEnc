@@ -105,8 +105,8 @@ static void usage(const char* name) {
 
 static std::string list_dls_files(std::vector<std::string> dls_files) {
     std::string result = "";
-    for(std::string dls_file : dls_files) {
-        if(!result.empty())
+    for (const std::string& dls_file : dls_files) {
+        if (!result.empty())
             result += "/";
         result += "'" + dls_file + "'";
     }

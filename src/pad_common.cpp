@@ -112,8 +112,8 @@ bool PADPacketizer::QueueFilled() {
 }
 
 bool PADPacketizer::QueueContainsDG(int apptype_start) {
-    for(std::deque<DATA_GROUP*>::const_iterator it = queue.cbegin(); it != queue.cend(); it++)
-        if((*it)->apptype_start == apptype_start)
+    for (const DATA_GROUP* dg : queue)
+        if (dg->apptype_start == apptype_start)
             return true;
     return false;
 }
@@ -156,7 +156,7 @@ void PADPacketizer::WriteAllPADs(int output_fd, int limit, bool output_sole_fpad
 
         if (verbose >= 2) {
             fprintf(stderr, "ODR-PadEnc writing PAD (%zu bytes):", pad->size());
-            for(size_t j = 0; j < pad->size(); j++) {
+            for (size_t j = 0; j < pad->size(); j++) {
                 const char sep = (j == (pad->size() - 1) || j == (pad->size() - 1 - FPAD_LEN)) ? '|' : ' ';
                 fprintf(stderr, "%c%02X", sep , (*pad)[j]);
             }

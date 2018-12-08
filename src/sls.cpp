@@ -36,13 +36,10 @@ const int    History::MAXSLIDEID      =  9999; // Roll-over value for fidx
 
 int History::find(const fingerprint_t& fp) const
 {
-    size_t i;
-    for (i = 0; i < m_database.size(); i++) {
-        if (m_database[i] == fp) {
-            // return the id of fingerprint found
-            return m_database[i].fidx;
-        }
-    }
+    // return the id of fingerprint found
+    for (const fingerprint_t& db_fp : m_database)
+        if (db_fp == fp)
+            return db_fp.fidx;
 
     // return -1 when the database doesn't contain this fingerprint
     return -1;
@@ -124,13 +121,13 @@ bool SlideStore::InitFromDir(const std::string& dir) {
 
     struct dirent** dir_entries;
     int dir_count = scandir(dir.c_str(), &dir_entries, FilterSlides, alphasort);
-    if(dir_count < 0) {
+    if (dir_count < 0) {
         perror(("ODR-PadEnc Error: cannot open slides directory '" + dir + "'").c_str());
         return false;
     }
 
     // add new slides to transmit to list
-    for(int i = 0; i < dir_count; i++) {
+    for (int i = 0; i < dir_count; i++) {
         std::string imagepath = dir + "/" + std::string(dir_entries[i]->d_name);
         free(dir_entries[i]);
 

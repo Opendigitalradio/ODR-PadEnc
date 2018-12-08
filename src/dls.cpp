@@ -317,8 +317,8 @@ DATA_GROUP* DLSEncoder::dls_get(const std::string& text, DABCharset charset, int
 
 #ifdef DEBUG
     fprintf(stderr, "DL segment:");
-    for (size_t i = 0; i < seg_data.size(); i++)
-        fprintf(stderr, " %02x", seg_data[i]);
+    for (const uint8_t& b : seg_data)
+        fprintf(stderr, " %02x", b);
     fprintf(stderr, "\n");
 #endif
     return dg;
