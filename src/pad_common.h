@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -108,6 +108,7 @@ private:
     void AppendDGWithCI(DATA_GROUP* dg);
     void AppendDGWithoutCI(DATA_GROUP* dg);
 
+    pad_t* GetPAD();
     void ResetPAD();
     pad_t* FlushPAD();
 public:
@@ -122,8 +123,7 @@ public:
     bool QueueFilled();
     bool QueueContainsDG(int apptype_start);
 
-    pad_t* GetPAD();
-    void WriteAllPADs(int output_fd, int limit = -1, bool output_sole_fpad = false);
+    void WriteAllPADs(int output_fd, int limit = -1, bool output_sole_fpad = false, bool output_xpad = true);
 
     static DATA_GROUP* CreateDataGroupLengthIndicator(size_t len);
     static bool CheckPADLen(size_t len);

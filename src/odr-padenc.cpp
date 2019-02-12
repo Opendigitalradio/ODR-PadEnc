@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -90,6 +90,8 @@ static void usage(const char* name) {
                     " -L, --label-ins=DUR       Insert label every DUR milliseconds\n"
                     "                             Default: %d\n"
                     " -i, --init-burst=COUNT    Sets a PAD burst amount to initially fill the output FIFO\n"
+                    "                             Default: %d\n"
+                    " -X, --xpad-interval=COUNT Output X-PAD every COUNT frames/AUs (otherwise: only F-PAD)\n"
                     "                             Default: %d\n",
                     options_default.slide_interval,
                     options_default.output,
@@ -98,7 +100,8 @@ static void usage(const char* name) {
                     options_default.max_slide_size,
                     options_default.label_interval,
                     options_default.label_insertion,
-                    options_default.init_burst
+                    options_default.init_burst,
+                    options_default.xpad_interval
            );
 }
 
@@ -137,12 +140,13 @@ int main(int argc, char *argv[]) {
         {"label",           required_argument,  0, 'l'},
         {"label-ins",       required_argument,  0, 'L'},
         {"init-burst",      required_argument,  0, 'i'},
+        {"xpad-interval",   required_argument,  0, 'X'},
         {"verbose",         no_argument,        0, 'v'},
         {0,0,0,0},
     };
 
     int ch;
-    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:f:l:L:i:vm:", longopts, NULL)) != -1) {
+    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:f:l:L:i:X:vm:", longopts, NULL)) != -1) {
         switch (ch) {
             case 'c':
                 options.dl_params.charset = (DABCharset) atoi(optarg);
@@ -188,6 +192,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'i':
                 options.init_burst = atoi(optarg);
+                break;
+            case 'X':
+                options.xpad_interval = atoi(optarg);
                 break;
             case 'v':
                 verbose++;
@@ -273,6 +280,11 @@ int main(int argc, char *argv[]) {
 
 
     // TODO: check uniform PAD encoder options!?
+
+    if (options.xpad_interval < 1) {
+        fprintf(stderr, "ODR-PadEnc Error: The X-PAD interval must be 1 or greater!\n");
+        return 1;
+    }
 
 
     // invoke selected encoder
@@ -498,6 +510,8 @@ UniformPadEncoder::UniformPadEncoder(PadEncoderOptions options) : PadEncoder(opt
     // if multiple DLS files, ensure that initial increment leads to first one
     if (options.dls_files.size() > 1)
         curr_dls_file = -1;
+
+    xpad_interval_counter = 0;
 }
 
 int UniformPadEncoder::Encode() {
@@ -557,12 +571,15 @@ int UniformPadEncoder::Encode() {
     if (result)
         return result;
 
-    // flush one PAD
-    pad_packetizer.WriteAllPADs(output_fd, 1, true);
+    // flush one PAD (considering X-PAD output interval)
+    pad_packetizer.WriteAllPADs(output_fd, 1, true, xpad_interval_counter == 0);
     pad_timeline += std::chrono::milliseconds(options.frame_dur);
 
     // schedule next run at next frame/AU
     run_timeline += std::chrono::milliseconds(options.frame_dur);
+
+    // update X-PAD output interval counter
+    xpad_interval_counter = (xpad_interval_counter + 1) % options.xpad_interval;
 
     return 0;
 }

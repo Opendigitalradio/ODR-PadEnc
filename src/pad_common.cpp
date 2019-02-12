@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -140,13 +140,13 @@ pad_t* PADPacketizer::GetPAD() {
 }
 
 
-void PADPacketizer::WriteAllPADs(int output_fd, int limit, bool output_sole_fpad) {
+void PADPacketizer::WriteAllPADs(int output_fd, int limit, bool output_sole_fpad, bool output_xpad) {
     size_t error_count = 0;
     size_t error_bytes = 0;
 
     // output a limited amount of PADs (-1 = no limit)
     for (int i = 0; i != limit; i++) {
-        pad_t* pad = GetPAD();
+        pad_t* pad = output_xpad ? GetPAD() : FlushPAD();
 
         // if only F-PAD present, abort (if desired)
         if (pad->back() == FPAD_LEN && !output_sole_fpad) {

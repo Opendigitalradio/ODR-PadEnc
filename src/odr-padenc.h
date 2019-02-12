@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017, 2018 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ struct PadEncoderOptions {
     int label_interval;     // uniform PAD encoder only
     int label_insertion;    // uniform PAD encoder only
     int init_burst;         // uniform PAD encoder only
+    int xpad_interval;      // uniform PAD encoder only
     size_t max_slide_size;
     bool raw_slides;
     DL_PARAMS dl_params;
@@ -73,6 +74,7 @@ struct PadEncoderOptions {
             label_interval(12),
             label_insertion(1200),
             init_burst(12),
+            xpad_interval(1),
             max_slide_size(SLSEncoder::MAXSLIDESIZE_SIMPLE),
             raw_slides(false),
             sls_dir(NULL),
@@ -141,6 +143,7 @@ private:
     steady_clock::time_point next_slide;
     steady_clock::time_point next_label;
     steady_clock::time_point next_label_insertion;
+    size_t xpad_interval_counter;
 
     int Encode();
 public:
