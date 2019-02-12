@@ -13,7 +13,7 @@ for the encoder.
 
 For detailed usage, see the usage screen of the tool with the `-h` option.
 
-More information is available on the
+More (recent) information is available on the
 [Opendigitalradio wiki](http://wiki.opendigitalradio.org/ODR-PadEnc)
 
 How to build
@@ -67,6 +67,7 @@ RAW Format
 If ImageMagick is not compiled in, or when enabled with the `-R` option, the images
 are not modified, and are transmitted as-is. Use this if you can guarantee that
 the generated files are smaller than 50kB and not larger than 320x240 pixels.
+It may be useful to apply [`optipng`](http://optipng.sourceforge.net) to any PNG file prior to transmission.
 
 Supported Encoders
 ------------------
