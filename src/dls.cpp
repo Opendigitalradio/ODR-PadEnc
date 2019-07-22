@@ -260,7 +260,10 @@ void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_pa
             for (dl_plus_tags_t::const_iterator it = dl_state.dl_plus_tags.begin(); it != dl_state.dl_plus_tags.end(); it++) {
                 if (it != dl_state.dl_plus_tags.begin())
                     fprintf(stderr, ", ");
-                fprintf(stderr, "%d (S/L: %d/%d)", it->content_type, it->start_marker, it->length_marker);
+                if (it->content_type == 0 && it->start_marker == 0 && it->length_marker == 0)
+                    fprintf(stderr, "(DUMMY)");
+                else
+                    fprintf(stderr, "%d (S/L: %d/%d)", it->content_type, it->start_marker, it->length_marker);
             }
             fprintf(stderr, "\n");
         }
