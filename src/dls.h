@@ -148,6 +148,8 @@ private:
     CharsetConverter charset_converter;
     bool dls_toggle;
     DL_STATE dl_state_prev;
+
+    bool parseLabel(const std::string& dls_file, const DL_PARAMS& dl_params, DL_STATE& dl_state);
 public:
     static const int APPTYPE_START;
     static const int APPTYPE_CONT;

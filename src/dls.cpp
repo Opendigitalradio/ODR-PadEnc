@@ -189,14 +189,13 @@ void DLSEncoder::parse_dl_params(std::ifstream &dls_fstream, DL_STATE &dl_state)
 }
 
 
-void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params) {
-    DL_STATE dl_state;
+bool DLSEncoder::parseLabel(const std::string& dls_file, const DL_PARAMS& dl_params, DL_STATE& dl_state) {
     std::vector<std::string> dls_lines;
 
     std::ifstream dls_fstream(dls_file);
     if (!dls_fstream.is_open()) {
         std::cerr << "Could not open " << dls_file << std::endl;
-        return;
+        return false;
     }
 
     std::string line;
@@ -241,11 +240,18 @@ void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_pa
         dl_state.dl_text.resize(MAXDLS);
     }
 
+    return true;
+}
+
+
+void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params) {
+    DL_STATE dl_state;
+    if (!parseLabel(dls_file, dl_params, dl_state))
+        return;
 
     // if DL Plus enabled, but no DL Plus tags were added, add the required DUMMY tag
     if (dl_state.dl_plus_enabled && dl_state.dl_plus_tags.empty())
         dl_state.dl_plus_tags.emplace_back();
-
 
     // toggle the toggle bit only on new DL state
     bool dl_state_is_new = dl_state != dl_state_prev;
