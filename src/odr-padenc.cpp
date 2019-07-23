@@ -76,6 +76,7 @@ static void usage(const char* name) {
                     " -r, --remove-dls          Always insert a DLS Remove Label command when replacing a DLS text.\n"
                     " -C, --raw-dls             Do not convert DLS texts to Complete EBU Latin based repertoire\n"
                     "                             character set encoding.\n"
+                    " -I, --item-state=FILENAME FIFO or file to read the DL Plus Item Toggle/Running bits from (instead of the current DLS file).\n"
                     " -m, --max-slide-size=SIZE Recompress slide if above the specified maximum size in bytes.\n"
                     "                             Default: %zu (Simple Profile)\n"
                     " -R, --raw-slides          Do not process slides. Integrity checks and resizing\n"
@@ -131,6 +132,7 @@ int main(int argc, char *argv[]) {
         {"erase",           no_argument,        0, 'e'},
         {"output",          required_argument,  0, 'o'},
         {"dls",             required_argument,  0, 't'},
+        {"item-state",      required_argument,  0, 'I'},
         {"pad",             required_argument,  0, 'p'},
         {"sleep",           required_argument,  0, 's'},
         {"max-slide-size",  required_argument,  0, 'm'},
@@ -146,7 +148,7 @@ int main(int argc, char *argv[]) {
     };
 
     int ch;
-    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:f:l:L:i:X:vm:", longopts, NULL)) != -1) {
+    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:I:f:l:L:i:X:vm:", longopts, NULL)) != -1) {
         switch (ch) {
             case 'c':
                 options.dl_params.charset = (DABCharset) atoi(optarg);
@@ -171,6 +173,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 't':   // can be used more than once!
                 options.dls_files.push_back(optarg);
+                break;
+            case 'I':
+                options.item_state_file = optarg;
                 break;
             case 'p':
                 options.padlen = atoi(optarg);
@@ -277,6 +282,9 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
+
+    if (options.item_state_file)
+        fprintf(stderr, "ODR-PadEnc reading DL Plus Item Toggle/Running bits from '%s'.\n", options.item_state_file);
 
 
     // TODO: check uniform PAD encoder options!?
@@ -446,7 +454,7 @@ int PadEncoder::EncodeLabel(bool skip_if_already_queued) {
         return 0;
     }
 
-    dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.dl_params);
+    dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.item_state_file, options.dl_params);
 
     return 0;
 }

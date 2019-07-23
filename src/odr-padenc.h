@@ -65,6 +65,7 @@ struct PadEncoderOptions {
     const char* sls_dir;
     const char* output;
     std::vector<std::string> dls_files;
+    const char* item_state_file;
 
     PadEncoderOptions() :
             padlen(58),
@@ -78,7 +79,8 @@ struct PadEncoderOptions {
             max_slide_size(SLSEncoder::MAXSLIDESIZE_SIMPLE),
             raw_slides(false),
             sls_dir(NULL),
-            output("/tmp/pad.fifo")
+            output("/tmp/pad.fifo"),
+            item_state_file(NULL)
     {}
 
     bool DLSEnabled() {return !dls_files.empty();}

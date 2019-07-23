@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -156,7 +156,7 @@ public:
     static const std::string REQUEST_REREAD_SUFFIX;
 
     DLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), dls_toggle(false) {}
-    void encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params);
+    void encodeLabel(const std::string& dls_file, const char* item_state_file, const DL_PARAMS& dl_params);
 };
 
 #endif /* DLS_H_ */

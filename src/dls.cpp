@@ -3,7 +3,7 @@
 
     Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
 
-    Copyright (C) 2015, 2016, 2017 Stefan Pöschel (http://opendigitalradio.org)
+    Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -244,10 +244,21 @@ bool DLSEncoder::parseLabel(const std::string& dls_file, const DL_PARAMS& dl_par
 }
 
 
-void DLSEncoder::encodeLabel(const std::string& dls_file, const DL_PARAMS& dl_params) {
+void DLSEncoder::encodeLabel(const std::string& dls_file, const char* item_state_file, const DL_PARAMS& dl_params) {
     DL_STATE dl_state;
     if (!parseLabel(dls_file, dl_params, dl_state))
         return;
+
+    // if enabled, derive DL Plus Item Toggle/Running bits from separate file
+    if (item_state_file) {
+        DL_STATE item_state;
+        if (!parseLabel(item_state_file, DL_PARAMS(), item_state))
+            return;
+
+        dl_state.dl_plus_enabled = true;
+        dl_state.dl_plus_item_toggle = item_state.dl_plus_item_toggle;
+        dl_state.dl_plus_item_running = item_state.dl_plus_item_running;
+    }
 
     // if DL Plus enabled, but no DL Plus tags were added, add the required DUMMY tag
     if (dl_state.dl_plus_enabled && dl_state.dl_plus_tags.empty())
