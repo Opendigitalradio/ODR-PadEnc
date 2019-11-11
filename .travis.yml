@@ -1,20 +1,28 @@
 language: c++
-sudo: required
-dist: xenial
 
-addons: &addons
-  apt:
-    sources: &sources
-      - ubuntu-toolchain-r-test
-    packages: &packages
-      - automake
-      - libboost1.58-all-dev
-      - libcurl4-openssl-dev
-      - gcc-9
-      - g++-9
+matrix:
+  include:
+    - os: linux
+      arch: amd64
+      dist: bionic
+      sudo: required
+      compiler: gcc
+      addons: &linuxaddons
+        apt:
+          sources: &sources
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
+          packages: &packages
+            - automake
+            - libboost-all-dev
+            - libcurl4-openssl-dev
+            - g++-9
 
-compiler:
-  - gcc
+    - os: linux
+      arch: arm64
+      dist: bionic
+      sudo: required
+      compiler: gcc
+      addons: *linuxaddons
 
 script:
   - |
