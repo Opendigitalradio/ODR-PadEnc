@@ -13,6 +13,8 @@ odr_padenc_LDFLAGS  = -pie -z now
 odr_padenc_SOURCES  = \
 					  src/odr-padenc.cpp \
 					  src/odr-padenc.h \
+					  src/pad_interface.cpp \
+					  src/pad_interface.h \
 					  src/common.cpp \
 					  src/common.h \
 					  src/pad_common.cpp \

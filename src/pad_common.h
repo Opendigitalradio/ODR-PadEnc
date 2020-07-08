@@ -123,7 +123,7 @@ public:
     bool QueueFilled();
     bool QueueContainsDG(int apptype_start);
 
-    void WriteAllPADs(int output_fd, int limit = -1, bool output_sole_fpad = false, bool output_xpad = true);
+    std::vector<uint8_t> GetNextPAD(bool output_xpad);
 
     static DATA_GROUP* CreateDataGroupLengthIndicator(size_t len);
     static bool CheckPADLen(size_t len);

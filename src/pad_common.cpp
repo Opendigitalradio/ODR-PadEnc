@@ -139,40 +139,21 @@ pad_t* PADPacketizer::GetPAD() {
     return FlushPAD();
 }
 
+std::vector<uint8_t> PADPacketizer::GetNextPAD(bool output_xpad) {
+    pad_t* pad = output_xpad ? GetPAD() : FlushPAD();
 
-void PADPacketizer::WriteAllPADs(int output_fd, int limit, bool output_sole_fpad, bool output_xpad) {
-    size_t error_count = 0;
-    size_t error_bytes = 0;
-
-    // output a limited amount of PADs (-1 = no limit)
-    for (int i = 0; i != limit; i++) {
-        pad_t* pad = output_xpad ? GetPAD() : FlushPAD();
-
-        // if only F-PAD present, abort (if desired)
-        if (pad->back() == FPAD_LEN && !output_sole_fpad) {
-            delete pad;
-            break;
+    if (verbose >= 2) {
+        fprintf(stderr, "ODR-PadEnc writing PAD (%zu bytes):", pad->size());
+        for (size_t j = 0; j < pad->size(); j++) {
+            const char sep = (j == (pad->size() - 1) || j == (pad->size() - 1 - FPAD_LEN)) ? '|' : ' ';
+            fprintf(stderr, "%c%02X", sep , (*pad)[j]);
         }
-
-        if (verbose >= 2) {
-            fprintf(stderr, "ODR-PadEnc writing PAD (%zu bytes):", pad->size());
-            for (size_t j = 0; j < pad->size(); j++) {
-                const char sep = (j == (pad->size() - 1) || j == (pad->size() - 1 - FPAD_LEN)) ? '|' : ' ';
-                fprintf(stderr, "%c%02X", sep , (*pad)[j]);
-            }
-            fprintf(stderr, "\n");
-        }
-
-        if (write(output_fd, &(*pad)[0], pad->size()) != (signed) pad->size()) {
-            error_count++;
-            error_bytes += pad->size();
-        }
-
-        delete pad;
+        fprintf(stderr, "\n");
     }
 
-    if (error_count)
-        fprintf(stderr, "ODR-PadEnc Error: Could not write %zu PAD(s) with %zu Bytes\n", error_count, error_bytes);
+    std::vector<uint8_t> p = *pad;
+    delete pad;
+    return p;
 }
 
 

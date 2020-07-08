@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2014 CSP Innovazione nelle ICT s.c.a r.l. (http://rd.csp.it/)
 
-    Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
+    Copyright (C) 2014-2020 Matthias P. Braendli (http://opendigitalradio.org)
 
     Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
@@ -41,6 +41,7 @@
 #include <getopt.h>
 #include <unistd.h>
 
+#include "pad_interface.h"
 #include "pad_common.h"
 #include "dls.h"
 #include "sls.h"
@@ -50,41 +51,23 @@ using std::chrono::steady_clock;
 
 // --- PadEncoderOptions -----------------------------------------------------------------
 struct PadEncoderOptions {
-    size_t padlen;
-    bool erase_after_tx;
-    int slide_interval;
-    int frame_dur;          // uniform PAD encoder only
-    int label_interval;     // uniform PAD encoder only
-    int label_insertion;    // uniform PAD encoder only
-    int init_burst;         // uniform PAD encoder only
-    int xpad_interval;      // uniform PAD encoder only
-    size_t max_slide_size;
-    bool raw_slides;
+    uint8_t padlen = 0;
+    bool erase_after_tx = false;
+    int slide_interval = 10;
+    int label_interval = 12;    // uniform PAD encoder only
+    int label_insertion = 1200; // uniform PAD encoder only
+    int xpad_interval = 1;      // uniform PAD encoder only
+    size_t max_slide_size = SLSEncoder::MAXSLIDESIZE_SIMPLE;
+    bool raw_slides = false;
     DL_PARAMS dl_params;
 
-    const char* sls_dir;
-    const char* output;
+    const char *sls_dir = nullptr;
+    std::string socket_ident;
     std::vector<std::string> dls_files;
-    const char* item_state_file;
+    const char *item_state_file = nullptr;
 
-    PadEncoderOptions() :
-            padlen(58),
-            erase_after_tx(false),
-            slide_interval(10),
-            frame_dur(0),
-            label_interval(12),
-            label_insertion(1200),
-            init_burst(12),
-            xpad_interval(1),
-            max_slide_size(SLSEncoder::MAXSLIDESIZE_SIMPLE),
-            raw_slides(false),
-            sls_dir(NULL),
-            output("/tmp/pad.fifo"),
-            item_state_file(NULL)
-    {}
-
-    bool DLSEnabled() {return !dls_files.empty();}
-    bool SLSEnabled() {return sls_dir;}
+    bool DLSEnabled() const { return !dls_files.empty(); }
+    bool SLSEnabled() const { return sls_dir; }
 };
 
 
@@ -98,56 +81,19 @@ protected:
     SlideStore slides;
     bool slides_success;
     int curr_dls_file;
-    int output_fd;
-    steady_clock::time_point run_timeline;
-
-    std::atomic<bool> do_exit;
-
-    PadEncoder(PadEncoderOptions options) :
-        options(options),
-        pad_packetizer(PADPacketizer(options.padlen)),
-        dls_encoder(DLSEncoder(&pad_packetizer)),
-        sls_encoder(SLSEncoder(&pad_packetizer)),
-        slides_success(false),
-        curr_dls_file(0),
-        output_fd(-1),
-        run_timeline(steady_clock::now()),
-        do_exit(false)
-    {}
-
-    virtual int Encode() = 0;
-    int EncodeSlide(bool skip_if_already_queued);
-    int EncodeLabel(bool skip_if_already_queued);
-    static int CheckRereadFile(const std::string& type, const std::string& path);
-public:
-    virtual ~PadEncoder() {}
-
-    int Main();
-    void DoExit() {do_exit = true;}
-};
-
-
-// --- BurstPadEncoder -----------------------------------------------------------------
-class BurstPadEncoder : public PadEncoder {
-private:
-    static const int DLS_REPETITION_WHILE_SLS;
-
-    int Encode();
-public:
-    BurstPadEncoder(PadEncoderOptions options) : PadEncoder(options) {}
-};
-
-
-// --- UniformPadEncoder -----------------------------------------------------------------
-class UniformPadEncoder : public PadEncoder {
-private:
-    steady_clock::time_point pad_timeline;
     steady_clock::time_point next_slide;
     steady_clock::time_point next_label;
     steady_clock::time_point next_label_insertion;
     size_t xpad_interval_counter;
 
-    int Encode();
+    int EncodeSlide(bool skip_if_already_queued);
+    int EncodeLabel(bool skip_if_already_queued);
+    static int CheckRereadFile(const std::string& type, const std::string& path);
+
 public:
-    UniformPadEncoder(PadEncoderOptions options);
+    PadEncoder(PadEncoderOptions options);
+    virtual ~PadEncoder() {}
+
+    int Encode(PadInterface& intf);
 };
+

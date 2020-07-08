@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2014 CSP Innovazione nelle ICT s.c.a r.l. (http://rd.csp.it/)
 
-    Copyright (C) 2014, 2015 Matthias P. Braendli (http://opendigitalradio.org)
+    Copyright (C) 2014-2020 Matthias P. Braendli (http://opendigitalradio.org)
 
     Copyright (C) 2015-2019 Stefan Pöschel (http://opendigitalradio.org)
 
@@ -28,14 +28,13 @@
 */
 
 #include "odr-padenc.h"
+#include <memory>
 
-
-static PadEncoder *pad_encoder = NULL;
+std::atomic<bool> do_exit;
 
 static void break_handler(int) {
     fprintf(stderr, "...ODR-PadEnc exits...\n");
-    if(pad_encoder)
-        pad_encoder->DoExit();
+    do_exit.store(true);
 }
 
 static void header() {
@@ -61,13 +60,9 @@ static void usage(const char* name) {
                     "                             been encoded.\n"
                     " -s, --sleep=DUR           Wait DUR seconds between each slide\n"
                     "                             Default: %d\n"
-                    " -o, --output=FILENAME     FIFO to write PAD data into.\n"
-                    "                             Default: %s\n"
+                    " -o, --output=IDENTIFIER   Socket to communicate with audio encoder\n"
                     " -t, --dls=FILENAME        FIFO or file to read DLS text from.\n"
-                    "                             If specified more than once, use next file after slide switch (for uniform PAD encoder, -l is used instead).\n"
-                    " -p, --pad=LENGTH          Set the PAD length in bytes.\n"
-                    "                             Possible values: %s\n"
-                    "                             Default: %zu\n"
+                    "                             If specified more than once, use next file after -l delay.\n"
                     " -c, --charset=ID          ID of the character set encoding used for DLS text input.\n"
                     "                             ID =  0: Complete EBU Latin based repertoire\n"
                     "                             ID =  6: ISO/IEC 10646 using UCS-2 BE\n"
@@ -85,24 +80,21 @@ static void usage(const char* name) {
                     " -v, --verbose             Print more information to the console (may be used more than once)\n"
                     "\n"
                     "Parameters for uniform PAD encoder only:\n"
-                    " -f, --frame-dur=DUR       Enable the uniform PAD encoder and set the duration of one frame/AU in milliseconds.\n"
                     " -l, --label=DUR           Wait DUR seconds between each label (if more than one file used)\n"
                     "                             Default: %d\n"
                     " -L, --label-ins=DUR       Insert label every DUR milliseconds\n"
                     "                             Default: %d\n"
-                    " -i, --init-burst=COUNT    Sets a PAD burst amount to initially fill the output FIFO\n"
-                    "                             Default: %d\n"
                     " -X, --xpad-interval=COUNT Output X-PAD every COUNT frames/AUs (otherwise: only F-PAD)\n"
-                    "                             Default: %d\n",
+                    "                             Default: %d\n"
+                    "\n"
+                    "The PAD length is configured on the audio encoder and communicated over the socket to ODR-PadEnc\n"
+                    "Allowed PAD lengths are: %s\n",
                     options_default.slide_interval,
-                    options_default.output,
-                    PADPacketizer::ALLOWED_PADLEN.c_str(),
-                    options_default.padlen,
                     options_default.max_slide_size,
                     options_default.label_interval,
                     options_default.label_insertion,
-                    options_default.init_burst,
-                    options_default.xpad_interval
+                    options_default.xpad_interval,
+                    PADPacketizer::ALLOWED_PADLEN.c_str()
            );
 }
 
@@ -133,22 +125,19 @@ int main(int argc, char *argv[]) {
         {"output",          required_argument,  0, 'o'},
         {"dls",             required_argument,  0, 't'},
         {"item-state",      required_argument,  0, 'I'},
-        {"pad",             required_argument,  0, 'p'},
         {"sleep",           required_argument,  0, 's'},
         {"max-slide-size",  required_argument,  0, 'm'},
         {"raw-slides",      no_argument,        0, 'R'},
         {"help",            no_argument,        0, 'h'},
-        {"frame-dur",       required_argument,  0, 'f'},
         {"label",           required_argument,  0, 'l'},
         {"label-ins",       required_argument,  0, 'L'},
-        {"init-burst",      required_argument,  0, 'i'},
         {"xpad-interval",   required_argument,  0, 'X'},
         {"verbose",         no_argument,        0, 'v'},
         {0,0,0,0},
     };
 
     int ch;
-    while((ch = getopt_long(argc, argv, "eChRrc:d:o:p:s:t:I:f:l:L:i:X:vm:", longopts, NULL)) != -1) {
+    while((ch = getopt_long(argc, argv, "eChRrc:d:o:s:t:I:l:L:X:vm:", longopts, NULL)) != -1) {
         switch (ch) {
             case 'c':
                 options.dl_params.charset = (DABCharset) atoi(optarg);
@@ -166,7 +155,7 @@ int main(int argc, char *argv[]) {
                 options.erase_after_tx = true;
                 break;
             case 'o':
-                options.output = optarg;
+                options.socket_ident = optarg;
                 break;
             case 's':
                 options.slide_interval = atoi(optarg);
@@ -177,26 +166,17 @@ int main(int argc, char *argv[]) {
             case 'I':
                 options.item_state_file = optarg;
                 break;
-            case 'p':
-                options.padlen = atoi(optarg);
-                break;
             case 'm':
                 options.max_slide_size = atoi(optarg);
                 break;
             case 'R':
                 options.raw_slides = true;
                 break;
-            case 'f':
-                options.frame_dur = atoi(optarg);
-                break;
             case 'l':
                 options.label_interval = atoi(optarg);
                 break;
             case 'L':
                 options.label_insertion = atoi(optarg);
-                break;
-            case 'i':
-                options.init_burst = atoi(optarg);
                 break;
             case 'X':
                 options.xpad_interval = atoi(optarg);
@@ -211,11 +191,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (!PADPacketizer::CheckPADLen(options.padlen)) {
-        fprintf(stderr, "ODR-PadEnc Error: PAD length %zu invalid: Possible values: %s\n",
-                options.padlen, PADPacketizer::ALLOWED_PADLEN.c_str());
-        return 2;
-    }
     if (options.max_slide_size > SLSEncoder::MAXSLIDESIZE_SIMPLE) {
         fprintf(stderr, "ODR-PadEnc Error: max slide size %zu exceeds Simple Profile limit %zu\n",
                 options.max_slide_size, SLSEncoder::MAXSLIDESIZE_SIMPLE);
@@ -223,16 +198,16 @@ int main(int argc, char *argv[]) {
     }
 
     if (options.sls_dir && not options.dls_files.empty()) {
-        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from %s to '%s' (PAD length: %zu)\n",
-                options.sls_dir, list_dls_files(options.dls_files).c_str(), options.output, options.padlen);
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' and DLS from %s to '%s'\n",
+                options.sls_dir, list_dls_files(options.dls_files).c_str(), options.socket_ident.c_str());
     }
     else if (options.sls_dir) {
-        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' to '%s' (PAD length: %zu). No DLS.\n",
-                options.sls_dir, options.output, options.padlen);
+        fprintf(stderr, "ODR-PadEnc encoding Slideshow from '%s' to '%s'. No DLS.\n",
+                options.sls_dir, options.socket_ident.c_str());
     }
     else if (not options.dls_files.empty()) {
-        fprintf(stderr, "ODR-PadEnc encoding DLS from %s to '%s' (PAD length: %zu). No Slideshow.\n",
-                list_dls_files(options.dls_files).c_str(), options.output, options.padlen);
+        fprintf(stderr, "ODR-PadEnc encoding DLS from %s to '%s'. No Slideshow.\n",
+                list_dls_files(options.dls_files).c_str(), options.socket_ident.c_str());
     }
     else {
         fprintf(stderr, "ODR-PadEnc Error: Neither DLS nor Slideshow to encode !\n");
@@ -294,41 +269,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-
-    // invoke selected encoder
-    if (options.frame_dur) {
-        fprintf(stderr, "ODR-PadEnc using uniform PAD encoder\n");
-        pad_encoder = new UniformPadEncoder(options);
-    } else {
-        fprintf(stderr, "ODR-PadEnc using burst PAD encoder\n");
-        pad_encoder = new BurstPadEncoder(options);
-    }
-    int result = pad_encoder->Main();
-    delete pad_encoder;
-
-    return result;
-}
-
-
-// --- PadEncoder -----------------------------------------------------------------
-int PadEncoder::Main() {
-    output_fd = open(options.output, O_WRONLY);
-    if (output_fd == -1) {
-        perror("ODR-PadEnc Error: failed to open output");
-        return 3;
-    }
-
-    // check for FIFO
-    struct stat fifo_stat;
-    if (fstat(output_fd, &fifo_stat)) {
-        perror("ODR-PadEnc Error: could not retrieve output file stat");
-        return 1;
-    }
-    if ((fifo_stat.st_mode & S_IFMT) != S_IFIFO) {
-        fprintf(stderr, "ODR-PadEnc Error: the output file must be a FIFO!\n");
-        return 3;
-    }
-
 #if HAVE_MAGICKWAND
     MagickWandGenesis();
     if (verbose)
@@ -349,23 +289,47 @@ int PadEncoder::Main() {
         return 1;
     }
 
-    // invoke actual encoder
     int result = 0;
-    while (!do_exit) {
-        result = Encode();
 
-        // abort on error
-        if (result)
-            break;
+    PadInterface intf;
+    try {
+        intf.open(options.socket_ident);
 
-        // sleep until next run
-        std::this_thread::sleep_until(run_timeline);
+        uint8_t previous_padlen = 0;
+
+        std::shared_ptr<PadEncoder> pad_encoder;
+
+        while (!do_exit) {
+            options.padlen = intf.receive_request();
+
+            if (previous_padlen != options.padlen) {
+                previous_padlen = options.padlen;
+
+                if (options.padlen == 0) {
+                    /* ignore */
+                }
+                else if (!PADPacketizer::CheckPADLen(options.padlen)) {
+                    fprintf(stderr, "ODR-PadEnc Error: PAD length %d invalid: Possible values: %s\n",
+                            options.padlen, PADPacketizer::ALLOWED_PADLEN.c_str());
+                    result = 2;
+                    break;
+                }
+                else {
+                    fprintf(stderr, "ODR-PadEnc Reinitialise PAD length to %d\n", options.padlen);
+                    pad_encoder = std::make_shared<PadEncoder>(options);
+                }
+            }
+
+            if (options.padlen > 0) {
+                result = pad_encoder->Encode(intf);
+                if (result > 0) {
+                    break;
+                }
+            }
+        }
     }
-
-    // cleanup
-    if (close(output_fd)) {
-        perror("ODR-PadEnc Error: failed to close output");
-        return 1;
+    catch (const std::runtime_error& e) {
+        fprintf(stderr, "ODR-PadEnc failure: %s\n", e.what());
     }
 
 #if HAVE_MAGICKWAND
@@ -374,6 +338,28 @@ int PadEncoder::Main() {
 
     return result;
 }
+
+
+// --- PadEncoder -----------------------------------------------------------------
+PadEncoder::PadEncoder(PadEncoderOptions options) :
+        options(options),
+        pad_packetizer(PADPacketizer(options.padlen)),
+        dls_encoder(DLSEncoder(&pad_packetizer)),
+        sls_encoder(SLSEncoder(&pad_packetizer)),
+        slides_success(false),
+        curr_dls_file(0)
+{
+    // PAD related timelines
+    next_slide = next_label = next_label_insertion = steady_clock::now();
+
+    // if multiple DLS files, ensure that initial increment leads to first one
+    if (options.dls_files.size() > 1) {
+        curr_dls_file = -1;
+    }
+
+    xpad_interval_counter = 0;
+}
+
 
 int PadEncoder::CheckRereadFile(const std::string& type, const std::string& path) {
     struct stat path_stat;
@@ -460,69 +446,9 @@ int PadEncoder::EncodeLabel(bool skip_if_already_queued) {
 }
 
 
-// --- BurstPadEncoder -----------------------------------------------------------------
-const int BurstPadEncoder::DLS_REPETITION_WHILE_SLS = 50; // PADs
+int PadEncoder::Encode(PadInterface& intf) {
+    steady_clock::time_point pad_timeline = std::chrono::steady_clock::now();
 
-int BurstPadEncoder::Encode() {
-    int result = 0;
-
-    // encode SLS
-    if (options.SLSEnabled()) {
-        result = EncodeSlide(false);
-        if (result)
-            return result;
-
-        // while flushing, insert DLS (if present) after a certain PAD amout
-        while (pad_packetizer.QueueFilled()) {
-            if (options.DLSEnabled()) {
-                result = EncodeLabel(false);
-                if (result)
-                    return result;
-            }
-
-            pad_packetizer.WriteAllPADs(output_fd, DLS_REPETITION_WHILE_SLS);
-        }
-    }
-
-    // encode (a last) DLS (if present)
-    if (options.DLSEnabled()) {
-        result = EncodeLabel(false);
-        if (result)
-            return result;
-
-        // switch to next DLS file
-        curr_dls_file = (curr_dls_file + 1) % options.dls_files.size();
-    }
-
-    // flush all remaining PADs
-    pad_packetizer.WriteAllPADs(output_fd);
-
-    // schedule next run at next slide interval
-    run_timeline += std::chrono::seconds(options.slide_interval);
-
-    return 0;
-}
-
-
-// --- UniformPadEncoder -----------------------------------------------------------------
-UniformPadEncoder::UniformPadEncoder(PadEncoderOptions options) : PadEncoder(options) {
-    // PAD related timelines
-    pad_timeline = steady_clock::now();
-    next_slide = pad_timeline;
-    next_label = pad_timeline;
-    next_label_insertion = pad_timeline;
-
-    // consider initial burst
-    run_timeline -= std::chrono::milliseconds(options.init_burst * options.frame_dur);
-
-    // if multiple DLS files, ensure that initial increment leads to first one
-    if (options.dls_files.size() > 1)
-        curr_dls_file = -1;
-
-    xpad_interval_counter = 0;
-}
-
-int UniformPadEncoder::Encode() {
     int result = 0;
 
     // handle SLS
@@ -580,11 +506,9 @@ int UniformPadEncoder::Encode() {
         return result;
 
     // flush one PAD (considering X-PAD output interval)
-    pad_packetizer.WriteAllPADs(output_fd, 1, true, xpad_interval_counter == 0);
-    pad_timeline += std::chrono::milliseconds(options.frame_dur);
+    auto pad = pad_packetizer.GetNextPAD(xpad_interval_counter == 0);
 
-    // schedule next run at next frame/AU
-    run_timeline += std::chrono::milliseconds(options.frame_dur);
+    intf.send_pad_data(pad.data(), pad.size());
 
     // update X-PAD output interval counter
     xpad_interval_counter = (xpad_interval_counter + 1) % options.xpad_interval;
