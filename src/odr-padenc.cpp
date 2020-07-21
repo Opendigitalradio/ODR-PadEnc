@@ -86,6 +86,7 @@ static void usage(const char* name) {
                     "                             slides is skipped. Use this if you know what you are doing !\n"
                     "                             It is useful only when -d is used\n"
                     " -v, --verbose             Print more information to the console (may be used more than once)\n"
+                    " --version                 Print version information and quit\n"
                     "\n"
                     "Parameters for uniform PAD encoder only:\n"
                     " -f, --frame-dur=DUR       Enable the uniform PAD encoder and set the duration of one frame/AU in milliseconds.\n"
@@ -122,6 +123,18 @@ static std::string list_dls_files(std::vector<std::string> dls_files) {
 
 
 int main(int argc, char *argv[]) {
+    // Version handling is done very early to ensure nothing else but the version gets printed out
+    if (argc == 2 and strcmp(argv[1], "--version") == 0) {
+        fprintf(stdout, "%s\n",
+#if defined(GITVERSION)
+                GITVERSION
+#else
+                PACKAGE_VERSION
+#endif
+               );
+        return 0;
+    }
+
     header();
 
     // get/check options
