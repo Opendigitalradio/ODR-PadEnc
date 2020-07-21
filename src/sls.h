@@ -252,7 +252,7 @@ public:
 
     SLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
-    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size);
+    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size, const std::string& dump_name);
     static bool isSlideParamFileFilename(const std::string& filename);
 };
 

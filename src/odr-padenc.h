@@ -67,6 +67,9 @@ struct PadEncoderOptions {
     std::vector<std::string> dls_files;
     const char* item_state_file;
 
+    std::string current_slide_dump_name;
+    std::string completed_slide_dump_name;
+
     PadEncoderOptions() :
             padlen(58),
             erase_after_tx(false),

@@ -61,6 +61,9 @@ static void usage(const char* name) {
                     "                             been encoded.\n"
                     " -s, --sleep=DUR           Wait DUR seconds between each slide\n"
                     "                             Default: %d\n"
+                    " --dump-current-slide=F1   Write the slide currently being transmitted to the file F1\n"
+                    " --dump-completed-slide=F2 Once the slide is transmitted, move the file from F1 to F2\n"
+                    "                             Works only in uniform mode\n"
                     " -o, --output=FILENAME     FIFO to write PAD data into.\n"
                     "                             Default: %s\n"
                     " -t, --dls=FILENAME        FIFO or file to read DLS text from.\n"
@@ -144,6 +147,8 @@ int main(int argc, char *argv[]) {
         {"init-burst",      required_argument,  0, 'i'},
         {"xpad-interval",   required_argument,  0, 'X'},
         {"verbose",         no_argument,        0, 'v'},
+        {"dump-current-slide",   required_argument, 0, 1},
+        {"dump-completed-slide", required_argument, 0, 2},
         {0,0,0,0},
     };
 
@@ -203,6 +208,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 'v':
                 verbose++;
+                break;
+            case 1: // dump-current-slide
+                options.current_slide_dump_name = optarg;
+                break;
+            case 2: // dump-completed-slide
+                options.completed_slide_dump_name = optarg;
                 break;
             case '?':
             case 'h':
@@ -423,7 +434,7 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
         if (!slides.Empty()) {
             slide_metadata_t slide = slides.GetSlide();
 
-            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides, options.max_slide_size)) {
+            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides, options.max_slide_size, options.current_slide_dump_name)) {
                 slides_success = true;
                 if (options.erase_after_tx) {
                     if (unlink(slide.filepath.c_str()))
@@ -527,6 +538,21 @@ int UniformPadEncoder::Encode() {
 
     // handle SLS
     if (options.SLSEnabled()) {
+
+        // Check if slide transmission is complete
+        if (    not options.completed_slide_dump_name.empty() and
+                not options.current_slide_dump_name.empty() and
+                not pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START)) {
+            if (rename(options.current_slide_dump_name.c_str(), options.completed_slide_dump_name.c_str())) {
+                if (errno != ENOENT) {
+                    perror("ODR-PadEnc Error: renaming completed slide file failed");
+                }
+            }
+            else {
+                fprintf(stderr, "ODR-PadEnc completed slide transmission.\n");
+            }
+        }
+
         if (options.slide_interval > 0) {
             // encode slides regularly
             if (pad_timeline >= next_slide) {

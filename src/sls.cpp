@@ -353,8 +353,23 @@ size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
 }
 #endif
 
+static void dump_slide(const std::string& dump_name, const uint8_t *blob, size_t size)
+{
+    FILE* fd = fopen(dump_name.c_str(), "w");
 
-bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size)
+    if (fd == nullptr) {
+        perror(("ODR-PadEnc Error: Unable to open file '" + dump_name + "' for writing").c_str());
+        return;
+    }
+
+    if (fwrite(blob, size, 1, fd) == 0) {
+        perror(("ODR-PadEnc Error: Unable to write to file '" + dump_name + "'").c_str());
+    }
+
+    fclose(fd);
+}
+
+bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size, const std::string& dump_name)
 {
     bool result = false;
 
@@ -564,6 +579,10 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
 
             pad_packetizer->AddDG(dgli, false);
             pad_packetizer->AddDG(mscdg, false);
+        }
+
+        if (not dump_name.empty()) {
+            dump_slide(dump_name, blob, blobsize);
         }
 
         result = true;
