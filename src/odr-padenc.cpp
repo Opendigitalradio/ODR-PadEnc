@@ -84,6 +84,8 @@ static void usage(const char* name) {
                     "                             Default: %zu (Simple Profile)\n"
                     " -R, --raw-slides          Do not process slides. Integrity checks and resizing\n"
                     "                             slides is skipped. Use this if you know what you are doing !\n"
+                    "                             Slides whose name ends in _PadEncRawMode.jpg or _PadEncRawMode.png are always transmitted unprocessed, regardless of\n"
+                    "                             the -R option being set \n"
                     "                             It is useful only when -d is used\n"
                     " -v, --verbose             Print more information to the console (may be used more than once)\n"
                     " --version                 Print version information and quit\n"

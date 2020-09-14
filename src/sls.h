@@ -73,7 +73,7 @@ struct MSCDG {
     unsigned char rcount;       //  3 bits
     unsigned short int seglen;  // 13 bits
     // Mot segment
-    unsigned char* segdata;
+    const uint8_t* segdata;
     // MSC data group CRC
     unsigned short int crc;     // 16 bits
 };
@@ -237,7 +237,7 @@ private:
     uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, const std::string &params_fname);
     void createMscDG(MSCDG* msc, unsigned short int dgtype,
             int *cindex, unsigned short int segnum, unsigned short int lastseg,
-            unsigned short int tid, unsigned char* data,
+            unsigned short int tid, const uint8_t* data,
             unsigned short int datalen);
     DATA_GROUP* packMscDG(MSCDG* msc);
 

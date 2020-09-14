@@ -369,6 +369,19 @@ static void dump_slide(const std::string& dump_name, const uint8_t *blob, size_t
     fclose(fd);
 }
 
+static bool filename_specifies_raw_mode(const std::string& fname)
+{
+    const size_t sep = fname.rfind("_");
+    if (sep != std::string::npos) {
+        std::string suffix = fname.substr(sep, std::string::npos);
+        std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
+        return suffix == "_padencrawmode.png" or suffix == "_padencrawmode.jpg";
+    }
+    else {
+        return false;
+    }
+}
+
 bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size, const std::string& dump_name)
 {
     bool result = false;
@@ -377,11 +390,14 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
     MagickWand *m_wand = NULL;
 #endif
 
-    uint8_t* blob = NULL;
+    uint8_t *raw_blob = NULL;
+    uint8_t *magick_blob = NULL;
     size_t blobsize;
     bool jfif_not_png = true;
 
-    if (!raw_slides) {
+    const bool raw_slide = filename_specifies_raw_mode(fname) or raw_slides;
+
+    if (!raw_slide) {
 #if HAVE_MAGICKWAND
         /*! By default, we do resize the image to 320x240, with a quality such that
          * the blobsize is at most MAXSLIDESIZE.
@@ -451,7 +467,7 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
 
         if (native_support && height <= 240 && width <= 320 && not jpeg_progr) {
             // Don't recompress the image and check if the blobsize is suitable
-            blob = MagickGetImageBlob(m_wand, &blobsize);
+            magick_blob = MagickGetImageBlob(m_wand, &blobsize);
 
             if (blobsize <= max_slide_size) {
                 if (verbose) {
@@ -460,13 +476,13 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
                 }
                 resize_required = false;
             } else {
-                MagickRelinquishMemory(blob);
-                blob = NULL;
+                MagickRelinquishMemory(magick_blob);
+                magick_blob = NULL;
             }
         }
 
         if (resize_required) {
-            blobsize = resizeImage(m_wand, &blob, fname, &jfif_not_png, max_slide_size);
+            blobsize = resizeImage(m_wand, &magick_blob, fname, &jfif_not_png, max_slide_size);
         } else {
             // warn if unresized image smaller than default dimension
             warnOnSmallerImage(height, width, fname);
@@ -501,15 +517,15 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
         }
 
         // allocate memory to contain the whole file:
-        blob = (uint8_t*) malloc(blobsize);
-        if (blob == NULL) {
+        raw_blob = (uint8_t*) malloc(blobsize);
+        if (raw_blob == NULL) {
             fprintf(stderr, "ODR-PadEnc Error: Memory allocation error\n");
             fclose(pFile);
             goto encodefile_out;
         }
 
         // copy the file into the buffer:
-        if (fread(blob, blobsize, 1, pFile) != 1) {
+        if (fread(raw_blob, blobsize, 1, pFile) != 1) {
             fprintf(stderr, "ODR-PadEnc Error: Could not read file\n");
             fclose(pFile);
             goto encodefile_out;
@@ -537,6 +553,12 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
     }
 
     if (blobsize) {
+        if (raw_blob == nullptr and magick_blob == nullptr) {
+            fprintf(stderr, "ODR-PadEnc logic error: either raw_blob or magick_blob must be non-null! See src/sls.cpp line %d\n", __LINE__);
+            abort();
+        }
+        const uint8_t *blob = raw_blob ? raw_blob : magick_blob;
+
         MSCDG msc;
         DATA_GROUP* dgli;
         DATA_GROUP* mscdg;
@@ -561,7 +583,7 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
         // MOT Body
 
         for (size_t i = 0; i < nseg; i++) {
-            unsigned char *curseg = blob + i * MAXSEGLEN;
+            const uint8_t *curseg = blob + i * MAXSEGLEN;
             size_t curseglen;
             int last;
 
@@ -589,14 +611,14 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
     }
 
 encodefile_out:
-    if (blob) {
-        if(raw_slides) {
-            free(blob);
-        } else {
+    if (raw_blob) {
+        free(raw_blob);
+    }
+
+    if (magick_blob) {
 #if HAVE_MAGICKWAND
-            MagickRelinquishMemory(blob);
+        MagickRelinquishMemory(magick_blob);
 #endif
-        }
     }
 
 #if HAVE_MAGICKWAND
@@ -730,7 +752,7 @@ uint8_vector_t SLSEncoder::createMotHeader(size_t blobsize, int fidx, bool jfif_
 
 void SLSEncoder::createMscDG(MSCDG* msc, unsigned short int dgtype,
         int *cindex, unsigned short int segnum, unsigned short int lastseg,
-        unsigned short int tid, unsigned char* data,
+        unsigned short int tid, const uint8_t* data,
         unsigned short int datalen)
 {
     msc->extflag = 0;
