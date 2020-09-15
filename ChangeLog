@@ -1,3 +1,27 @@
+2020-09-15: Matthias P. Braendli <matthias@mpb.li>
+	(v2.4.0):
+		Add --version option.
+		Handle slides ending in _PadEncRawMode.jpg always in RAW.
+		Some build system changes.
+		DLS: allow to use separate DL Plus item state file and add request to file reread.
+
+2018-03-18: Stefan Pöschel <odr@basicmaster.de>
+	(v2.3.0)
+
+2017-04-17: Stefan Pöschel <odr@basicmaster.de>
+	(v2.2.0)
+
+2017-03-09: Stefan Pöschel <odr@basicmaster.de>
+	(v2.1.1)
+
+2017-02-19: Stefan Pöschel <odr@basicmaster.de>
+	(v2.1.0)
+
+2016-10-14: Stefan Pöschel <odr@basicmaster.de>
+	(v2.0.1)
+
+In 2016 the project gets renamed to odr-padenc
+
 2016-09-02: Matthias P. Braendli <matthias@mpb.li>
 	(v1.2.0):
 	* mot-encoder:
