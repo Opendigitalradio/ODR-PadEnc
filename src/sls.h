@@ -73,7 +73,7 @@ struct MSCDG {
     unsigned char rcount;       //  3 bits
     unsigned short int seglen;  // 13 bits
     // Mot segment
-    unsigned char* segdata;
+    const uint8_t* segdata;
     // MSC data group CRC
     unsigned short int crc;     // 16 bits
 };
@@ -237,7 +237,7 @@ private:
     uint8_vector_t createMotHeader(size_t blobsize, int fidx, bool jfif_not_png, const std::string &params_fname);
     void createMscDG(MSCDG* msc, unsigned short int dgtype,
             int *cindex, unsigned short int segnum, unsigned short int lastseg,
-            unsigned short int tid, unsigned char* data,
+            unsigned short int tid, const uint8_t* data,
             unsigned short int datalen);
     DATA_GROUP* packMscDG(MSCDG* msc);
 
@@ -252,7 +252,7 @@ public:
 
     SLSEncoder(PADPacketizer* pad_packetizer) : pad_packetizer(pad_packetizer), cindex_header(0), cindex_body(0) {}
 
-    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size);
+    bool encodeSlide(const std::string& fname, int fidx, bool raw_slides, size_t max_slide_size, const std::string& dump_name);
     static bool isSlideParamFileFilename(const std::string& filename);
 };
 

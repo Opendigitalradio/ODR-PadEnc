@@ -65,6 +65,8 @@ struct PadEncoderOptions {
     std::string socket_ident;
     std::vector<std::string> dls_files;
     const char *item_state_file = nullptr;
+    std::string current_slide_dump_name;
+    std::string completed_slide_dump_name;
 
     bool DLSEnabled() const { return !dls_files.empty(); }
     bool SLSEnabled() const { return sls_dir; }

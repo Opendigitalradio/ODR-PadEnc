@@ -61,6 +61,8 @@ static void usage(const char* name) {
                     " -s, --sleep=DUR           Wait DUR seconds between each slide\n"
                     "                             Default: %d\n"
                     " -o, --output=IDENTIFIER   Socket to communicate with audio encoder\n"
+                    " --dump-current-slide=F1   Write the slide currently being transmitted to the file F1\n"
+                    " --dump-completed-slide=F2 Once the slide is transmitted, move the file from F1 to F2\n"
                     " -t, --dls=FILENAME        FIFO or file to read DLS text from.\n"
                     "                             If specified more than once, use next file after -l delay.\n"
                     " -c, --charset=ID          ID of the character set encoding used for DLS text input.\n"
@@ -76,10 +78,11 @@ static void usage(const char* name) {
                     "                             Default: %zu (Simple Profile)\n"
                     " -R, --raw-slides          Do not process slides. Integrity checks and resizing\n"
                     "                             slides is skipped. Use this if you know what you are doing !\n"
+                    "                             Slides whose name ends in _PadEncRawMode.jpg or _PadEncRawMode.png are always transmitted unprocessed, regardless of\n"
+                    "                             the -R option being set \n"
                     "                             It is useful only when -d is used\n"
                     " -v, --verbose             Print more information to the console (may be used more than once)\n"
-                    "\n"
-                    "Parameters for uniform PAD encoder only:\n"
+                    " --version                 Print version information and quit\n"
                     " -l, --label=DUR           Wait DUR seconds between each label (if more than one file used)\n"
                     "                             Default: %d\n"
                     " -L, --label-ins=DUR       Insert label every DUR milliseconds\n"
@@ -111,6 +114,18 @@ static std::string list_dls_files(std::vector<std::string> dls_files) {
 
 
 int main(int argc, char *argv[]) {
+    // Version handling is done very early to ensure nothing else but the version gets printed out
+    if (argc == 2 and strcmp(argv[1], "--version") == 0) {
+        fprintf(stdout, "%s\n",
+#if defined(GITVERSION)
+                GITVERSION
+#else
+                PACKAGE_VERSION
+#endif
+               );
+        return 0;
+    }
+
     header();
 
     // get/check options
@@ -133,6 +148,8 @@ int main(int argc, char *argv[]) {
         {"label-ins",       required_argument,  0, 'L'},
         {"xpad-interval",   required_argument,  0, 'X'},
         {"verbose",         no_argument,        0, 'v'},
+        {"dump-current-slide",   required_argument, 0, 1},
+        {"dump-completed-slide", required_argument, 0, 2},
         {0,0,0,0},
     };
 
@@ -183,6 +200,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 'v':
                 verbose++;
+                break;
+            case 1: // dump-current-slide
+                options.current_slide_dump_name = optarg;
+                break;
+            case 2: // dump-completed-slide
+                options.completed_slide_dump_name = optarg;
                 break;
             case '?':
             case 'h':
@@ -409,7 +432,7 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
         if (!slides.Empty()) {
             slide_metadata_t slide = slides.GetSlide();
 
-            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides, options.max_slide_size)) {
+            if (sls_encoder.encodeSlide(slide.filepath, slide.fidx, options.raw_slides, options.max_slide_size, options.current_slide_dump_name)) {
                 slides_success = true;
                 if (options.erase_after_tx) {
                     if (unlink(slide.filepath.c_str()))
@@ -453,6 +476,21 @@ int PadEncoder::Encode(PadInterface& intf) {
 
     // handle SLS
     if (options.SLSEnabled()) {
+
+        // Check if slide transmission is complete
+        if (    not options.completed_slide_dump_name.empty() and
+                not options.current_slide_dump_name.empty() and
+                not pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START)) {
+            if (rename(options.current_slide_dump_name.c_str(), options.completed_slide_dump_name.c_str())) {
+                if (errno != ENOENT) {
+                    perror("ODR-PadEnc Error: renaming completed slide file failed");
+                }
+            }
+            else {
+                fprintf(stderr, "ODR-PadEnc completed slide transmission.\n");
+            }
+        }
+
         if (options.slide_interval > 0) {
             // encode slides regularly
             if (pad_timeline >= next_slide) {
