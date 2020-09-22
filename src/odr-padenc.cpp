@@ -325,25 +325,22 @@ int main(int argc, char *argv[]) {
         while (!do_exit) {
             options.padlen = intf.receive_request();
 
-            if (previous_padlen != options.padlen) {
-                previous_padlen = options.padlen;
-
-                if (options.padlen == 0) {
-                    /* ignore */
-                }
-                else if (!PADPacketizer::CheckPADLen(options.padlen)) {
-                    fprintf(stderr, "ODR-PadEnc Error: PAD length %d invalid: Possible values: %s\n",
-                            options.padlen, PADPacketizer::ALLOWED_PADLEN.c_str());
-                    result = 2;
-                    break;
-                }
-                else {
-                    fprintf(stderr, "ODR-PadEnc Reinitialise PAD length to %d\n", options.padlen);
-                    pad_encoder = std::make_shared<PadEncoder>(options);
-                }
-            }
-
             if (options.padlen > 0) {
+                if (previous_padlen != options.padlen) {
+                    previous_padlen = options.padlen;
+
+                    if (!PADPacketizer::CheckPADLen(options.padlen)) {
+                        fprintf(stderr, "ODR-PadEnc Error: PAD length %d invalid: Possible values: %s\n",
+                                options.padlen, PADPacketizer::ALLOWED_PADLEN.c_str());
+                        result = 2;
+                        break;
+                    }
+                    else {
+                        fprintf(stderr, "ODR-PadEnc Reinitialise PAD length to %d\n", options.padlen);
+                        pad_encoder = std::make_shared<PadEncoder>(options);
+                    }
+                }
+
                 result = pad_encoder->Encode(intf);
                 if (result > 0) {
                     break;
