@@ -13,7 +13,7 @@ for the encoder.
 
 For detailed usage, see the usage screen of the tool with the `-h` option.
 
-More (recent) information is available on the
+More information is available on the
 [Opendigitalradio wiki](http://wiki.opendigitalradio.org/ODR-PadEnc)
 
 How to build
@@ -51,7 +51,7 @@ Usage of MOT Slideshow and DLS
 ==============================
 
 `odr-padenc` reads images from the specified folder, and generates the PAD
-data for the encoder. This is communicated through a FIFO to the encoder. It
+data for the encoder. This is communicated through a socket to the encoder. It
 also reads DLS from a file, and includes this information in the PAD.
 
 If ImageMagick is available
@@ -73,13 +73,15 @@ It may be useful to apply [`optipng`](http://optipng.sourceforge.net) to any PNG
 
 Supported Encoders
 ------------------
-`odr-audioenc` can insert the PAD data from `odr-padenc` into the bitstream.
-The MP2 encoder [Toolame-DAB](https://github.com/Opendigitalradio/toolame-dab)
-can also read `odr-padenc` data.
+`odr-audioenc` and `odr-sourcecompanion` can insert the PAD data from `odr-padenc` into the bitstream.
 
-This is an ongoing development. Make sure you use the same PAD length option
-for `odr-padenc` and the audio encoder. Only some PAD lengths are supported,
+This is an ongoing development.  Only some PAD lengths are supported,
 please see `odr-padenc`'s help.
+
+ODR-PadEnc v2 is compatible with ODR-AudioEnc v2 and ODR-SourceCompanion v0.x, and uses a fifo to communicate between
+the tools.
+
+ODR-PadEnc v3 replaced the fifo with a socket and is compatible with ODR-AudioEnc v3 and ODR-SourceCompanion v1.
 
 Character Sets
 --------------
