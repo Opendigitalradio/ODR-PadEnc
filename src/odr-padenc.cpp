@@ -399,9 +399,9 @@ int PadEncoder::CheckRereadFile(const std::string& type, const std::string& path
     }
 }
 
-int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
-    // skip insertion, if desired and previous one not yet finished
-    if (skip_if_already_queued && pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START)) {
+int PadEncoder::EncodeSlide() {
+    // skip insertion, if previous one not yet finished
+    if (pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START)) {
         fprintf(stderr, "ODR-PadEnc Warning: skipping slide insertion, as previous one still in transmission!\n");
         return 0;
     }
@@ -453,14 +453,14 @@ int PadEncoder::EncodeSlide(bool skip_if_already_queued) {
     return 0;
 }
 
-int PadEncoder::EncodeLabel(bool skip_if_already_queued) {
-    // skip insertion, if desired and previous one not yet finished
-    if (skip_if_already_queued && pad_packetizer.QueueContainsDG(DLSEncoder::APPTYPE_START)) {
+int PadEncoder::EncodeLabel() {
+    // skip insertion, if previous one not yet finished
+    if (pad_packetizer.QueueContainsDG(DLSEncoder::APPTYPE_START)) {
         fprintf(stderr, "ODR-PadEnc Warning: skipping label insertion, as previous one still in transmission!\n");
-        return 0;
     }
-
-    dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.item_state_file, options.dl_params);
+    else {
+        dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.item_state_file, options.dl_params);
+    }
 
     return 0;
 }
@@ -491,13 +491,13 @@ int PadEncoder::Encode(PadInterface& intf) {
         if (options.slide_interval > 0) {
             // encode slides regularly
             if (pad_timeline >= next_slide) {
-                result = EncodeSlide(true);
+                result = EncodeSlide();
                 next_slide += std::chrono::seconds(options.slide_interval);
             }
         } else {
             // encode slide as soon as previous slide has been transmitted
             if (!pad_packetizer.QueueContainsDG(SLSEncoder::APPTYPE_MOT_START))
-                result = EncodeSlide(true);
+                result = EncodeSlide();
         }
     }
     if (result)
@@ -533,7 +533,7 @@ int PadEncoder::Encode(PadInterface& intf) {
 
         if (pad_timeline >= next_label_insertion) {
             // encode label
-            result = EncodeLabel(true);
+            result = EncodeLabel();
             next_label_insertion += std::chrono::milliseconds(options.label_insertion);
         }
     }

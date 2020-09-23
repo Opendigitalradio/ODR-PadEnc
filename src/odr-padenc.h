@@ -88,8 +88,8 @@ protected:
     steady_clock::time_point next_label_insertion;
     size_t xpad_interval_counter;
 
-    int EncodeSlide(bool skip_if_already_queued);
-    int EncodeLabel(bool skip_if_already_queued);
+    int EncodeSlide();
+    int EncodeLabel();
     static int CheckRereadFile(const std::string& type, const std::string& path);
 
 public:
