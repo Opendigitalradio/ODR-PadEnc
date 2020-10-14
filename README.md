@@ -1,6 +1,5 @@
 ODR-PadEnc
 ==========
-
 ODR-PadEnc is an encoder for Programme Associated Data (PAD) and includes
 support for:
 
@@ -18,7 +17,6 @@ More information is available on the
 
 How to build
 =============
-
 Requirements:
 
 * a C++11 compiler
@@ -49,10 +47,22 @@ This has been fixed with the following package versions:
 
 Usage of MOT Slideshow and DLS
 ==============================
-
+Basic example
+-------------
 `odr-padenc` reads images from the specified folder, and generates the PAD
 data for the encoder. This is communicated through a socket to the encoder. It
 also reads DLS from a file, and includes this information in the PAD.
+
+PAD length is specified in the audio encoder and must not be set on the `odr-padenc` command line.
+
+Basic example with both DLS taken from the file *dls.txt* and MOT Slideshow carousel with slides from the *slides* folder.
+This assumes the common identifier between audio encoder and ODR-PadEnc is defined in the *IDENTIFIER* environment
+variable.
+
+    odr-padenc -o $IDENTIFIER -t dls.txt -d ./slides
+
+If you generate slides on-the-fly (e.g. content-related slides with album covers), set the `--erase` flag to ensure a
+slide is only transmitted once, and set `--sleep=0` to start slide transmission as soon as the file is created.
 
 If ImageMagick is available
 ---------------------------
@@ -75,8 +85,7 @@ Supported Encoders
 ------------------
 `odr-audioenc` and `odr-sourcecompanion` can insert the PAD data from `odr-padenc` into the bitstream.
 
-This is an ongoing development.  Only some PAD lengths are supported,
-please see `odr-padenc`'s help.
+This is an ongoing development.  Only some PAD lengths are supported, please see `odr-padenc`'s help.
 
 ODR-PadEnc v2 is compatible with ODR-AudioEnc v2 and ODR-SourceCompanion v0.x, and uses a fifo to communicate between
 the tools.
@@ -106,6 +115,5 @@ size limit given in the specification.
 
 Thanks
 ======
-
 This encoder was initially called `mot-encoder` and has been contributed by
 [CSP](http://rd.csp.it).
