@@ -1,37 +1,33 @@
 language: c++
+os: linux
+dist: focal
 
-matrix:
+jobs:
   include:
     - os: linux
       arch: amd64
-      dist: bionic
-      sudo: required
       compiler: gcc
       addons: &linuxaddons
         apt:
-          sources: &sources
-            - sourceline: 'ppa:ubuntu-toolchain-r/test'
           packages: &packages
             - automake
             - libboost-all-dev
             - libcurl4-openssl-dev
-            - g++-9
+            - g++-10
 
     - os: linux
       arch: arm64
-      dist: bionic
-      sudo: required
       compiler: gcc
       addons: *linuxaddons
 
 script:
   - |
     ./bootstrap
-    CC=gcc-9 CXX=g++-9 ./configure
+    CC=gcc-10 CXX=g++-10 ./configure
     make
   - |
     sudo apt-get install libmagickwand-dev
     ./bootstrap
-    CC=gcc-9 CXX=g++-9 ./configure
+    CC=gcc-10 CXX=g++-10 ./configure
     make
 
