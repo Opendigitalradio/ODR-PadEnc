@@ -22,7 +22,6 @@ If your host is running a debian-based OS and its cpu is one of amd64, arm64 or 
 1. Update the debian apt repository list:
    ```
    curl -fsSL http://debian.opendigitalradio.org/odr.asc | sudo tee /etc/apt/trusted.gpg.d/odr.asc 1>/dev/null
-   
    curl -fsSL http://debian.opendigitalradio.org/odr.list | sudo tee /etc/apt/sources.list.d/odr.list 1>/dev/null
    ```
 1. Refresh the debian packages list:
