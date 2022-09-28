@@ -456,13 +456,20 @@ int PadEncoder::EncodeSlide() {
 int PadEncoder::EncodeLabel() {
     // skip insertion, if previous one not yet finished
     if (pad_packetizer.QueueContainsDG(DLSEncoder::APPTYPE_START)) {
-        fprintf(stderr, "ODR-PadEnc Warning: skipping label insertion, as previous one still in transmission!\n");
+        if(!label_warn_shown) {
+            fprintf(stderr, "ODR-PadEnc Warning: there is a label already in transmission, delaying until the previous one ends.\n");
+            label_warn_shown = true;
+        }
+        return 0;
     }
     else {
+        if(label_warn_shown) {
+            fprintf(stderr, "Previous label ended transmission, sending the new one.\n");
+            label_warn_shown = false;
+        }
         dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.item_state_file, options.dl_params);
+        return 1;
     }
-
-    return 0;
 }
 
 
@@ -533,12 +540,13 @@ int PadEncoder::Encode(PadInterface& intf) {
 
         if (pad_timeline >= next_label_insertion) {
             // encode label
-            result = EncodeLabel();
-            next_label_insertion += std::chrono::milliseconds(options.label_insertion);
+            int label_encode_result = 0;
+            label_encode_result = EncodeLabel();
+            if(label_encode_result > 0) {
+                next_label_insertion += std::chrono::milliseconds(options.label_insertion);
+            }
         }
     }
-    if (result)
-        return result;
 
     // flush one PAD (considering X-PAD output interval)
     auto pad = pad_packetizer.GetNextPAD(xpad_interval_counter == 0);
