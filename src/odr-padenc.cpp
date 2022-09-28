@@ -464,7 +464,7 @@ int PadEncoder::EncodeLabel() {
     }
     else {
         if(label_warn_shown) {
-            fprintf(stderr, "Previous label ended transmission, sending the new one.\n");
+            fprintf(stderr, "ODR-PadEnc Previous label ended transmission, sending the new one.\n");
             label_warn_shown = false;
         }
         dls_encoder.encodeLabel(options.dls_files[curr_dls_file], options.item_state_file, options.dl_params);
