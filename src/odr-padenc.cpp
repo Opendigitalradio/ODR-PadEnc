@@ -454,7 +454,7 @@ int PadEncoder::EncodeSlide() {
 }
 
 int PadEncoder::EncodeLabel() {
-    // skip insertion, if previous one not yet finished
+    // delay insertion, if previous one not yet finished
     if (pad_packetizer.QueueContainsDG(DLSEncoder::APPTYPE_START)) {
         if(!label_warn_shown) {
             fprintf(stderr, "ODR-PadEnc Warning: there is a label already in transmission, delaying until the previous one ends.\n");
