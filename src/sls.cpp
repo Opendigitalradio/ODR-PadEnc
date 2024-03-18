@@ -261,9 +261,11 @@ const int SLSEncoder::APPTYPE_MOT_CONT = 13;
 const std::string SLSEncoder::REQUEST_REREAD_FILENAME = "REQUEST_SLIDES_DIR_REREAD";
 
 
-void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::string& fname) {
-    if (height < 240 || width < 320)
-        fprintf(stderr, "ODR-PadEnc Warning: Image '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)\n", fname.c_str(), width, height);
+void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::string& fname, bool resized) {
+    if (height < 240 || width < 320) {
+        fprintf(stderr, "ODR-PadEnc Warning: %s '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)\n",
+                resized ? "Resized image" : "Image", fname.c_str(), width, height);
+    }
 }
 
 
@@ -345,7 +347,7 @@ size_t SLSEncoder::resizeImage(MagickWand* m_wand, unsigned char** blob, const s
     }
 
     // warn if resized image smaller than default dimension
-    warnOnSmallerImage(height, width, fname);
+    warnOnSmallerImage(height, width, fname, true);
 
     MagickRelinquishMemory(*jfif_not_png ? blob_png : blob_jpg);
     *blob = *jfif_not_png ? blob_jpg : blob_png;
@@ -485,7 +487,7 @@ bool SLSEncoder::encodeSlide(const std::string& fname, int fidx, bool raw_slides
             blobsize = resizeImage(m_wand, &magick_blob, fname, &jfif_not_png, max_slide_size);
         } else {
             // warn if unresized image smaller than default dimension
-            warnOnSmallerImage(height, width, fname);
+            warnOnSmallerImage(height, width, fname, false);
         }
 
 #else

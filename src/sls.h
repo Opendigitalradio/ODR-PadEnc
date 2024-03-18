@@ -227,7 +227,7 @@ private:
     static const int    MINQUALITY;
     static const std::string SLS_PARAMS_SUFFIX;
 
-    void warnOnSmallerImage(size_t height, size_t width, const std::string& fname);
+    void warnOnSmallerImage(size_t height, size_t width, const std::string& fname, bool resized);
 #if HAVE_MAGICKWAND
     size_t resizeImage(MagickWand* m_wand, unsigned char** blob, const std::string& fname, bool* jfif_not_png, size_t max_slide_size);
 #endif
