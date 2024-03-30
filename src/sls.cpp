@@ -263,8 +263,9 @@ const std::string SLSEncoder::REQUEST_REREAD_FILENAME = "REQUEST_SLIDES_DIR_RERE
 
 void SLSEncoder::warnOnSmallerImage(size_t height, size_t width, const std::string& fname, bool resized) {
     if (height < 240 || width < 320) {
-        fprintf(stderr, "ODR-PadEnc Warning: %s '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)\n",
-                resized ? "Resized image" : "Image", fname.c_str(), width, height);
+        fprintf(stderr, "ODR-PadEnc Warning: %s '%s' smaller than recommended size (%zu x %zu < 320 x 240 px)%s\n",
+                resized ? "Resized image" : "Image", fname.c_str(), width, height,
+                resized ? "; please use 4:3 aspect ratio" : "");
     }
 }
 
