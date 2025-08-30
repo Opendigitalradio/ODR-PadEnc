@@ -143,7 +143,9 @@ std::vector<uint8_t> PADPacketizer::GetNextPAD(bool output_xpad) {
     pad_t* pad = output_xpad ? GetPAD() : FlushPAD();
 
     if (verbose >= 2) {
-        fprintf(stderr, "ODR-PadEnc writing PAD (%zu bytes):", pad->size());
+        fprintf(stderr, "ODR-PadEnc writing %cPAD (%zu bytes):",
+                output_xpad ? 'X' : 'F',
+                pad->size());
         for (size_t j = 0; j < pad->size(); j++) {
             const char sep = (j == (pad->size() - 1) || j == (pad->size() - 1 - FPAD_LEN)) ? '|' : ' ';
             fprintf(stderr, "%c%02X", sep , (*pad)[j]);
@@ -226,6 +228,14 @@ bool PADPacketizer::AppendDG(DATA_GROUP* dg) {
         return true;
     } else {
         AppendDGWithCI(dg);
+
+        /*
+        fprintf(stderr, "flush? %d %zu == %zu or %d: %zu + %zu > (%zu - %zu)\n",
+                used_cis == max_cis,
+                used_cis, max_cis,
+                SUBFIELD_LENS[0] + AddCINeededBytes() > (xpad_size_max - xpad_size),
+                SUBFIELD_LENS[0], AddCINeededBytes(), xpad_size_max, xpad_size);
+                */
 
         // if no further sub-fields could be added, PAD must be flushed
         if (used_cis == max_cis || SUBFIELD_LENS[0] + AddCINeededBytes() > (xpad_size_max - xpad_size))
