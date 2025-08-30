@@ -61,7 +61,9 @@ static void usage(const char* name) {
                     " -s, --sleep=DUR           Wait DUR seconds between each slide. If set to 0, the next slide is inserted just after the previous one\n"
                     "                             has been transmitted. This is useful e.g. for stations that transmit just a logo slide.\n"
                     "                             Default: %d\n"
-                    " -o, --output=IDENTIFIER   Socket to communicate with audio encoder\n"
+                    " -o, --output=IDENTIFIER   Socket to communicate with audio encoder.
+                             If IDENTIFIER contains '/', it's used as a full path.
+                             Otherwise, /tmp/ is prepended for backward compatibility\n"
                     " --dump-current-slide=F1   Write the slide currently being transmitted to the file F1\n"
                     " --dump-completed-slide=F2 Once the slide is transmitted, move the file from F1 to F2\n"
                     " -t, --dls=FILENAME        FIFO or file to read DLS text from.\n"

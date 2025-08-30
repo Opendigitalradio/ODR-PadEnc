@@ -104,6 +104,10 @@ variable.
 odr-padenc -o $IDENTIFIER -t dls.txt -d ./slides
 ```
 
+The `-o` parameter accepts either:
+- An identifier (e.g., `station1`): Creates sockets at `/tmp/station1.padenc` and `/tmp/station1.audioenc`
+- A full path (e.g., `/var/run/radio/station1`): Creates sockets at `/var/run/radio/station1.padenc` and `/var/run/radio/station1.audioenc`
+
 If you generate slides on-the-fly (e.g. content-related slides with album covers), set the `--erase` flag to ensure a
 slide is only transmitted once, and set `--sleep=0` to start slide transmission as soon as the file is created.
 

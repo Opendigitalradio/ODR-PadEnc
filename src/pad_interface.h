@@ -33,8 +33,10 @@
 
 class PadInterface {
     public:
-        /*! Create a new PAD data interface that binds to /tmp/pad_ident.padenc and
-         * communicates with ODR-AudioEnc at /tmp/pad_ident.audioenc
+        /*! Create a new PAD data interface that binds to a socket and
+         * communicates with ODR-AudioEnc. If pad_ident contains '/', it's used as a full path.
+         * Otherwise, /tmp/ is prepended for backward compatibility.
+         * Sockets: pad_ident.padenc (this) and pad_ident.audioenc (ODR-AudioEnc)
          */
         void open(const std::string &pad_ident);
 
