@@ -82,6 +82,7 @@ protected:
     SLSEncoder sls_encoder;
     SlideStore slides;
     bool slides_success;
+    bool label_warn_shown;
     int curr_dls_file;
     steady_clock::time_point next_slide;
     steady_clock::time_point next_label;
