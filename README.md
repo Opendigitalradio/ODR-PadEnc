@@ -17,21 +17,15 @@ More information is available on the
 
 ## Installation
 
-You have 3 ways to install odr-padenc on your host:
+You have 2 ways to install odr-padenc on your host:
 
-### Installing binary packages on some linux distributions
+### Installing binary packages (on some linux distributions)
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/odr-padenc.svg)](https://repology.org/project/odr-padenc/versions)
 
-### Using installation scripts
-
-If your linux distribution is debian-based, you can install odr-padenc
-as well as the other main components of the mmbTools set with the
-[Opendigitalradio dab-scripts](https://github.com/opendigitalradio/dab-scripts.git)
-
 ### Compiling manually
 
-Unlike the 2 previous options, this one allows you to compile odr-padenc with the features you really need.
+This option allows you to compile odr-padenc with the features you need.
 
 #### Requirements
 
