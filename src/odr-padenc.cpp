@@ -379,8 +379,6 @@ PadEncoder::PadEncoder(PadEncoderOptions options) :
     if (options.dls_files.size() > 1) {
         curr_dls_file = -1;
     }
-
-    xpad_interval_counter = 0;
 }
 
 

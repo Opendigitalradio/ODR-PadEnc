@@ -81,13 +81,13 @@ protected:
     DLSEncoder dls_encoder;
     SLSEncoder sls_encoder;
     SlideStore slides;
-    bool slides_success;
-    bool label_warn_shown;
-    int curr_dls_file;
+    bool slides_success = false;
+    bool label_warn_shown = false;
+    int curr_dls_file = 0;
     steady_clock::time_point next_slide;
     steady_clock::time_point next_label;
     steady_clock::time_point next_label_insertion;
-    size_t xpad_interval_counter;
+    size_t xpad_interval_counter = 0;
 
     int EncodeSlide();
     int EncodeLabel();
