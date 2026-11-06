@@ -267,7 +267,10 @@ void DLSEncoder::encodeLabel(const std::string& dls_file, const char* item_state
     // toggle the toggle bit only on new DL state
     bool dl_state_is_new = dl_state != dl_state_prev;
     if (verbose) {
-        fprintf(stderr, "ODR-PadEnc writing %s DLS text \"" ODR_COLOR_DL "%s" ODR_COLOR_RST "\"\n", dl_state_is_new ? "new" : "old", dl_state.dl_text.c_str());
+        // parseLabel() converted UTF-8 input to EBU Latin, which is not valid UTF-8 in a log
+        const bool converted = not dl_params.raw_dls && dl_params.charset == DABCharset::UTF8;
+        const std::string log_text = converted ? charset_converter.convert_ebu_to_utf8(dl_state.dl_text) : dl_state.dl_text;
+        fprintf(stderr, "ODR-PadEnc writing %s DLS text \"" ODR_COLOR_DL "%s" ODR_COLOR_RST "\"\n", dl_state_is_new ? "new" : "old", log_text.c_str());
         if (dl_state.dl_plus_enabled) {
             fprintf(
                     stderr, "ODR-PadEnc writing %s DL Plus tags (IT/IR: %d/%d): ",
